@@ -1,0 +1,7 @@
+sec,forward_delay_ms,forward_jitter_ms,forward_loss_pct,forward_rate_mbit,forward_reorder_pct,forward_correlation_pct,reverse_delay_ms,reverse_jitter_ms,reverse_loss_pct,reverse_rate_mbit,reverse_reorder_pct,reverse_correlation_pct,note
+0.0,15.0,1.0,0.0,100.0,0.0,20.0,15.0,1.0,0.0,260.0,0.0,20.0,normal
+1.0,17.5,1.5,0.10005005006258338,90.0,0.0,20.0,17.5,1.5,0.10005005006258338,260.0,0.0,20.0,degrading
+2.0,40.0,4.0,1.5114219820389518,40.0,0.0,20.0,40.0,4.0,1.5114219820389518,260.0,0.0,20.0,handover_candidate
+2.5,70.0,7.5,6.191684803531405,10.0,0.0,10.0,70.0,7.5,6.191684803531405,260.0,0.0,10.0,handover_peak
+3.0,27.5,2.5,0.5012562893380035,70.0,0.0,20.0,27.5,2.5,0.5012562893380035,260.0,0.0,20.0,recovery
+4.0,15.0,1.0,0.0,100.0,0.0,20.0,15.0,1.0,0.0,260.0,0.0,20.0,stable

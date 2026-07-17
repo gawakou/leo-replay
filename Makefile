@@ -1,4 +1,4 @@
-.PHONY: setup test syntax check example-profile example-event archive
+.PHONY: setup test syntax check example-profile example-event example-directional archive
 
 setup:
 	python3 -m venv .venv
@@ -25,6 +25,11 @@ example-event:
 	  --grpc examples/raw/grpc.csv --output /tmp/leo-events.json \
 	  --detail-output /tmp/leo-event-detail.json --bin-sec 0.1 \
 	  --min-event-duration-sec 0.05
+
+example-directional:
+	PYTHONPATH=src python3 -m leo_replay profile directionalize --mode timeseries \
+	  --input examples/profile.example.csv \
+	  --output /tmp/leo-profile-directional.csv
 
 archive:
 	bash tools/create_release_archive.sh

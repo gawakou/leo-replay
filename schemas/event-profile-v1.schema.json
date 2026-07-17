@@ -3,29 +3,71 @@
   "$id": "https://example.invalid/leo-replay/event-profile-v1.schema.json",
   "title": "LEO Replay Event Profile v1",
   "type": "object",
-  "required": ["schema_version", "profile_type", "metadata", "baseline", "events"],
+  "required": [
+    "schema_version",
+    "profile_type",
+    "metadata",
+    "baseline",
+    "events"
+  ],
   "properties": {
-    "schema_version": {"const": "1.0"},
-    "profile_type": {"const": "event"},
+    "schema_version": {
+      "const": "1.0"
+    },
+    "profile_type": {
+      "const": "event"
+    },
     "metadata": {
       "type": "object",
       "properties": {
-        "created_at": {"type": "string"},
-        "generator": {"type": "string"},
-        "time_reference": {"const": "relative"},
-        "bin_sec": {"type": "number", "exclusiveMinimum": 0},
-        "source_files": {"type": "object"}
+        "created_at": {
+          "type": "string"
+        },
+        "generator": {
+          "type": "string"
+        },
+        "time_reference": {
+          "const": "relative"
+        },
+        "bin_sec": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "source_files": {
+          "type": "object"
+        }
       },
       "additionalProperties": true
     },
     "baseline": {
       "type": "object",
-      "required": ["rate_mbit", "delay_ms", "jitter_ms", "loss_pct"],
+      "required": [
+        "rate_mbit",
+        "delay_ms",
+        "jitter_ms",
+        "loss_pct"
+      ],
       "properties": {
-        "rate_mbit": {"type": "number", "minimum": 0},
-        "delay_ms": {"type": "number", "minimum": 0},
-        "jitter_ms": {"type": "number", "minimum": 0},
-        "loss_pct": {"type": "number", "minimum": 0, "maximum": 100}
+        "rate_mbit": {
+          "type": "number",
+          "minimum": 0
+        },
+        "delay_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "jitter_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "loss_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "directions": {
+          "$ref": "#/$defs/directions"
+        }
       },
       "additionalProperties": true
     },
@@ -34,38 +76,235 @@
       "items": {
         "type": "object",
         "required": [
-          "event_id", "event_type", "start_sec", "end_sec", "duration_sec",
-          "severity", "confidence", "source_type", "parameters", "observations", "calibration"
+          "event_id",
+          "event_type",
+          "start_sec",
+          "end_sec",
+          "duration_sec",
+          "severity",
+          "confidence",
+          "source_type",
+          "parameters",
+          "observations",
+          "calibration"
         ],
         "properties": {
-          "event_id": {"type": "string", "minLength": 1},
-          "event_type": {"type": "string", "minLength": 1},
-          "start_sec": {"type": "number", "minimum": 0},
-          "end_sec": {"type": "number", "exclusiveMinimum": 0},
-          "duration_sec": {"type": "number", "exclusiveMinimum": 0},
-          "severity": {"type": "integer", "minimum": 0, "maximum": 4},
-          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "start_sec": {
+            "type": "number",
+            "minimum": 0
+          },
+          "end_sec": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "duration_sec": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "severity": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
           "source_type": {
-            "enum": ["MEASURED", "DERIVED", "INFERRED", "SYNTHETIC"]
+            "enum": [
+              "MEASURED",
+              "DERIVED",
+              "INFERRED",
+              "SYNTHETIC"
+            ]
           },
           "parameters": {
             "type": "object",
-            "required": ["rate_mbit", "delay_ms", "jitter_ms", "loss_pct", "spike_ms"],
+            "required": [
+              "rate_mbit",
+              "delay_ms",
+              "jitter_ms",
+              "loss_pct",
+              "spike_ms"
+            ],
             "properties": {
-              "rate_mbit": {"type": "number", "minimum": 0},
-              "delay_ms": {"type": "number", "minimum": 0},
-              "jitter_ms": {"type": "number", "minimum": 0},
-              "loss_pct": {"type": "number", "minimum": 0, "maximum": 100},
-              "spike_ms": {"type": "number", "minimum": 0}
+              "rate_mbit": {
+                "type": "number",
+                "minimum": 0
+              },
+              "delay_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "jitter_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "loss_pct": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "spike_ms": {
+                "type": "number",
+                "minimum": 0
+              }
             },
             "additionalProperties": true
           },
-          "observations": {"type": "object", "additionalProperties": true},
-          "calibration": {"type": "object", "additionalProperties": true}
+          "observations": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "calibration": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "directions": {
+            "$ref": "#/$defs/directions"
+          }
         },
         "additionalProperties": true
       }
     }
   },
-  "additionalProperties": true
+  "additionalProperties": true,
+  "$defs": {
+    "linkCondition": {
+      "type": "object",
+      "required": [
+        "rate_mbit",
+        "delay_ms",
+        "jitter_ms",
+        "loss_pct"
+      ],
+      "properties": {
+        "rate_mbit": {
+          "type": "number",
+          "minimum": 0
+        },
+        "delay_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "jitter_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "loss_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "reorder_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "correlation_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "additionalProperties": true
+    },
+    "directions": {
+      "type": "object",
+      "required": [
+        "forward",
+        "reverse"
+      ],
+      "properties": {
+        "forward": {
+          "type": "object",
+          "required": [
+            "rate_mbit",
+            "delay_ms",
+            "jitter_ms",
+            "loss_pct"
+          ],
+          "properties": {
+            "rate_mbit": {
+              "type": "number",
+              "minimum": 0
+            },
+            "delay_ms": {
+              "type": "number",
+              "minimum": 0
+            },
+            "jitter_ms": {
+              "type": "number",
+              "minimum": 0
+            },
+            "loss_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "reorder_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "correlation_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "additionalProperties": true
+        },
+        "reverse": {
+          "type": "object",
+          "required": [
+            "rate_mbit",
+            "delay_ms",
+            "jitter_ms",
+            "loss_pct"
+          ],
+          "properties": {
+            "rate_mbit": {
+              "type": "number",
+              "minimum": 0
+            },
+            "delay_ms": {
+              "type": "number",
+              "minimum": 0
+            },
+            "jitter_ms": {
+              "type": "number",
+              "minimum": 0
+            },
+            "loss_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "reorder_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "correlation_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
 }

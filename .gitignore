@@ -37,6 +37,5 @@ replay_measure/
 .DS_Store
 .vscode/
 .idea/
+
 *.egg-info/
-build/
-dist/

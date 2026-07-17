@@ -214,12 +214,39 @@ def normalize_document(data: Any) -> dict[str, Any]:
     return document
 
 
+def _validate_direction_mapping(mapping: Any, path: str, errors: list[str]) -> None:
+    if not isinstance(mapping, dict):
+        errors.append(f"{path} must be an object")
+        return
+    for direction in ("forward", "reverse"):
+        condition = mapping.get(direction)
+        if not isinstance(condition, dict):
+            errors.append(f"{path}.{direction} must be an object")
+            continue
+        for key in ("rate_mbit", "delay_ms", "jitter_ms", "loss_pct"):
+            value = _float(condition.get(key), math.nan)
+            if not math.isfinite(value) or value < 0:
+                errors.append(f"{path}.{direction}.{key} must be >= 0")
+        for key in ("reorder_pct", "correlation_pct"):
+            if key in condition:
+                value = _float(condition.get(key), math.nan)
+                if not math.isfinite(value) or not 0 <= value <= 100:
+                    errors.append(f"{path}.{direction}.{key} must be in [0, 100]")
+        loss = _float(condition.get("loss_pct"), math.nan)
+        if math.isfinite(loss) and loss > 100:
+            errors.append(f"{path}.{direction}.loss_pct must be <= 100")
+
+
 def validate_document(document: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     if document.get("schema_version") != SCHEMA_VERSION:
         errors.append(f"schema_version must be {SCHEMA_VERSION}")
     if document.get("profile_type") != PROFILE_TYPE:
         errors.append(f"profile_type must be {PROFILE_TYPE}")
+    baseline = document.get("baseline")
+    if isinstance(baseline, dict) and "directions" in baseline:
+        _validate_direction_mapping(baseline.get("directions"), "baseline.directions", errors)
+
     events = document.get("events")
     if not isinstance(events, list):
         return errors + ["events must be an array"]
@@ -278,6 +305,8 @@ def validate_document(document: dict[str, Any]) -> list[str]:
             loss = _float(parameters.get("loss_pct"), math.nan)
             if math.isfinite(loss) and loss > 100:
                 errors.append(f"{path}.parameters.loss_pct must be <= 100")
+        if "directions" in event:
+            _validate_direction_mapping(event.get("directions"), f"{path}.directions", errors)
     return errors
 
 

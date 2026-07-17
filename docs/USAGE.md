@@ -5,20 +5,13 @@
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e . -r requirements.txt
+python -m pip install --upgrade pip
+pip install -e . -r requirements-dev.txt
+make check
 leo-replay --version
 ```
 
-## 2. Configuration
-
-```bash
-cp config/experiment.example.env config/experiment.env
-$EDITOR config/experiment.env
-```
-
-`CLIENT_HOST`, `CLIENT_USER`, `IPERF_HOST`, `IFACE`を設定する。実値を含む`config/experiment.env`はGit管理対象外である。
-
-## 3. Event Profile v1 generation
+## 2. Existing event generation
 
 ```bash
 leo-replay profile generate \
@@ -28,104 +21,166 @@ leo-replay profile generate \
   --grpc /data/run01/grpc.csv \
   --output /data/run01/events.json \
   --detail-output /data/run01/event-detail.json \
-  --csv-output /data/run01/event-detail.csv \
   --bin-sec 0.1 \
-  --target-rate-mbps 100 \
-  --min-event-duration-sec 0.05
+  --target-rate-mbps 100
 ```
 
-旧形式が必要な場合だけ`--legacy-event-format`を付ける。
-
-## 4. Validation
+## 3. Convert a legacy time-series profile
 
 ```bash
-leo-replay validate --input /data/run01/events.json
+leo-replay profile directionalize \
+  --mode timeseries \
+  --input /data/run01/profile.csv \
+  --output /data/run01/profile-directional.csv
 ```
 
-旧形式をv1へ変換して保存する場合:
+Explicit policies can be selected.
 
 ```bash
-leo-replay validate \
-  --input /data/run01/events-legacy.json \
-  --normalized-output /data/run01/events-v1.json
+leo-replay profile directionalize \
+  --mode timeseries \
+  --input /data/run01/profile.csv \
+  --output /data/run01/profile-directional.csv \
+  --legacy-delay-policy split \
+  --delay-forward-share 0.5 \
+  --legacy-jitter-policy split \
+  --legacy-loss-policy equivalent \
+  --legacy-rate-policy forward-only \
+  --reverse-default-rate-mbps 260
 ```
 
-## 5. Event replay dry-run
+The transformation metadata is written to `profile-directional.csv.meta.json` unless `--metadata-output` is specified.
+
+## 4. Convert an Event Profile v1
+
+```bash
+leo-replay profile directionalize \
+  --mode event \
+  --input /data/run01/events.json \
+  --output /data/run01/events-directional.json
+
+leo-replay validate --input /data/run01/events-directional.json
+```
+
+## 5. dual-egress dry-run
+
+For a two-NIC inline router, specify the interface from which each traffic direction exits.
 
 ```bash
 leo-replay replay \
-  --mode event \
-  --input /data/run01/events.json \
-  --dev enp2s0 \
+  --mode timeseries \
+  --direction-mode dual-egress \
+  --input /data/run01/profile-directional.csv \
+  --forward-dev enp3s0 \
+  --reverse-dev enp2s0 \
   --dry-run \
-  --restore-default-between-events \
-  --execution-log /tmp/event-execution.jsonl
+  --setup-only \
+  --execution-log /tmp/bidirectional-execution.jsonl
 ```
 
-## 6. Event replay on Linux router
+## 6. dual-egress replay on a Linux router
+
+```bash
+sudo .venv/bin/leo-replay replay \
+  --mode timeseries \
+  --direction-mode dual-egress \
+  --input /data/run01/profile-directional.csv \
+  --forward-dev enp3s0 \
+  --reverse-dev enp2s0 \
+  --execution-log /data/run01/bidirectional-execution.jsonl
+```
+
+For event replay:
 
 ```bash
 sudo .venv/bin/leo-replay replay \
   --mode event \
-  --input /data/run01/events.json \
-  --dev enp2s0 \
+  --direction-mode dual-egress \
+  --input /data/run01/events-directional.json \
+  --forward-dev enp3s0 \
+  --reverse-dev enp2s0 \
   --restore-default-between-events \
-  --execution-log /data/run01/event-execution.jsonl
+  --execution-log /data/run01/event-bidirectional-execution.jsonl
 ```
 
-短時間イベントでは、イベント継続時間より`tc`コマンド適用時間が無視できない場合がある。`execution-log`の`lateness_ms`を必ず確認する。
+## 7. IFB dry-run
 
-## 7. Event evaluation
+```bash
+leo-replay replay \
+  --mode timeseries \
+  --direction-mode ifb \
+  --input /data/run01/profile-directional.csv \
+  --forward-dev enp2s0 \
+  --ifb-dev ifb0 \
+  --dry-run \
+  --setup-only
+```
+
+## 8. IFB replay on a Linux router
+
+```bash
+sudo .venv/bin/leo-replay replay \
+  --mode event \
+  --direction-mode ifb \
+  --input /data/run01/events-directional.json \
+  --forward-dev enp2s0 \
+  --ifb-dev ifb0 \
+  --restore-default-between-events \
+  --execution-log /data/run01/ifb-execution.jsonl
+```
+
+To remove qdisc and ingress redirect after replay:
+
+```bash
+sudo .venv/bin/leo-replay replay \
+  --mode event \
+  --direction-mode ifb \
+  --input /data/run01/events-directional.json \
+  --forward-dev enp2s0 \
+  --ifb-dev ifb0 \
+  --cleanup-on-exit \
+  --delete-ifb-device
+```
+
+## 9. Legacy single-direction compatibility
+
+```bash
+leo-replay replay \
+  --mode timeseries \
+  --direction-mode single \
+  --input /data/run01/profile.csv \
+  --dev enp2s0 \
+  --dry-run
+```
+
+## 10. Event evaluation
 
 ```bash
 leo-replay evaluate events \
   --measured-ping /data/run01/measured-ping.csv \
   --replayed-ping /data/run01/replayed-ping.csv \
-  --events /data/run01/events.json \
+  --events /data/run01/events-directional.json \
   --output /data/run01/event-metrics.json \
-  --csv-output /data/run01/event-metrics.csv \
-  --search-margin-sec 0.5 \
-  --align-tolerance-sec 0.11
+  --csv-output /data/run01/event-metrics.csv
 ```
 
-自動閾値はイベント直前のRTT中央値とMADから算出する。比較条件を固定したい場合は`--threshold-ms`を指定する。
+## 11. Manual cleanup
 
-## 8. Closed-loop calibration
-
-v1形式をそのまま使用できる。
+Dual egress:
 
 ```bash
-python scripts/replay/learn_event_delay.py \
-  --events-json /data/run01/events.json \
-  --measured-ping-csv /data/run01/measured-ping.csv \
-  --replay-ping-csv /data/run01/replayed-ping.csv \
-  --out-json /data/run01/events-learned.json
+sudo tc qdisc del dev enp3s0 root
+sudo tc qdisc del dev enp2s0 root
 ```
 
-## 9. Existing automated experiment
-
-```bash
-LEO_CONFIG_FILE="$PWD/config/experiment.env" \
-MODE=event ITER_MAX=5 \
-INITIAL_EVENTS=/data/run01/events.json \
-MEASURED_PING=/data/run01/measured-ping.csv \
-MEASURED_IPERF=/data/run01/measured-iperf.json \
-bash scripts/orchestration/run_experiment.sh
-```
-
-## 10. Time-series mode
-
-```bash
-leo-replay profile generate --mode timeseries \
-  --ping /data/run01/ping.csv --iperf /data/run01/iperf.json \
-  --grpc /data/run01/grpc.csv --output /data/run01/profile.csv --bin-sec 0.5
-
-leo-replay replay --mode timeseries \
-  --input /data/run01/profile.csv --dev enp2s0 --dry-run --verbose
-```
-
-## 11. Cleanup
+IFB:
 
 ```bash
 sudo tc qdisc del dev enp2s0 root
+sudo tc qdisc del dev enp2s0 ingress
+sudo tc qdisc del dev ifb0 root
+sudo ip link set dev ifb0 down
+sudo ip link delete ifb0 type ifb
 ```
+
+Commands may report that a qdisc or device does not exist; this is harmless during cleanup.
