@@ -1,0 +1,21 @@
+[
+  {
+    "start_sec": 2.0,
+    "end_sec": 2.6,
+    "duration_sec": 0.6,
+    "event": "handover_suspected",
+    "severity": 2,
+    "bins": 2,
+    "avg_rate_mbps": 25.0,
+    "max_loss_pct": 12.0,
+    "avg_delay_ms": 90.0,
+    "avg_ping_rtt_ms": 90.0,
+    "max_ping_timeout_ratio": 0.25,
+    "dominant_grpc_state": "CONNECTED",
+    "avg_pop_ping_latency_ms": 45.0,
+    "max_fraction_obstructed": 0.0,
+    "calibrated_delay_ms": 45.0,
+    "calibrated_jitter_ms": 8.0,
+    "calibrated_spike_ms": 25.0
+  }
+]

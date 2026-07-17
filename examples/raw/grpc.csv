@@ -1,0 +1,6 @@
+time_s,timestamp,state,pop_ping_drop_rate,downlink_throughput_bps,uplink_throughput_bps,pop_ping_latency_ms,fraction_obstructed,currently_obstructed
+0.0,2026-01-01T00:00:00Z,CONNECTED,0,100000000,10000000,30,0,false
+0.5,2026-01-01T00:00:00.5Z,CONNECTED,0,90000000,10000000,32,0,false
+1.0,2026-01-01T00:00:01Z,CONNECTED,0.03,40000000,8000000,70,0,false
+1.5,2026-01-01T00:00:01.5Z,SEARCHING,0.5,5000000,1000000,120,0.1,true
+2.0,2026-01-01T00:00:02Z,CONNECTED,0,80000000,9000000,40,0,false

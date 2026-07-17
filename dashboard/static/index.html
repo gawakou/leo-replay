@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>LEO Network Replay Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>LEO Network Replay Dashboard</h1>
+      <p>Profile-based replay visualization for tc/netem router</p>
+    </div>
+    <div class="controls">
+      <button id="startBtn">Start Replay</button>
+      <button id="stopBtn">Stop</button>
+      <span id="statusBadge" class="badge idle">IDLE</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="network-card">
+      <svg id="networkSvg" viewBox="0 0 900 260" preserveAspectRatio="xMidYMid meet">
+        <!-- links -->
+        <line x1="165" y1="120" x2="365" y2="120" class="link"/>
+        <line x1="535" y1="120" x2="735" y2="120" class="link"/>
+
+        <!-- client -->
+        <rect x="35" y="70" width="130" height="95" rx="0" class="node client"/>
+        <text x="100" y="110" class="node-label">クライアント</text>
+        <text x="100" y="135" class="node-small">iperf3</text>
+
+        <!-- router -->
+        <rect x="365" y="65" width="170" height="110" rx="18" class="node router"/>
+        <text x="450" y="105" class="node-label dark">再生ルータ</text>
+        <text x="450" y="132" class="node-small dark">tc/netem</text>
+
+        <!-- server-side interface -->
+        <rect id="serverIf" x="525" y="107" width="22" height="26" rx="2" class="if-normal"/>
+        <text x="540" y="158" class="if-label">server-side IF</text>
+
+        <!-- server -->
+        <rect x="735" y="70" width="130" height="95" rx="0" class="node server"/>
+        <text x="800" y="110" class="node-label">サーバ</text>
+        <text x="800" y="135" class="node-small">iperf3</text>
+
+        <!-- packet layer -->
+        <g id="packetLayer"></g>
+      </svg>
+    </section>
+
+    <section class="info-grid">
+      <div class="panel">
+        <h2>Current Parameters</h2>
+        <div class="kv"><span>Replay target</span><strong id="target">-</strong></div>
+        <div class="kv"><span>Protocol</span><strong id="protocol">UDP</strong></div>
+        <div class="kv"><span>Time</span><strong><span id="timeSec">0.0</span> / <span id="durationSec">300</span> s</strong></div>
+        <div class="kv"><span>Rate</span><strong><span id="rate">0.0</span> Mbps</strong></div>
+        <div class="kv"><span>Delay</span><strong><span id="delay">0.0</span> ms</strong></div>
+        <div class="kv"><span>Loss</span><strong><span id="loss">0.0</span> %</strong></div>
+      </div>
+
+      <div class="panel">
+        <h2>Network State</h2>
+        <div id="stateText" class="state-box idle">IDLE</div>
+        <p class="hint">
+          Green: normal / Yellow: degraded / Red: congested
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+{
+  "intervals": [
+    {
+      "sum": {
+        "start": 0.0,
+        "end": 0.5,
+        "bits_per_second": 100000000,
+        "bytes": 6250000
+      }
+    },
+    {
+      "sum": {
+        "start": 0.5,
+        "end": 1.0,
+        "bits_per_second": 90000000,
+        "bytes": 5625000
+      }
+    },
+    {
+      "sum": {
+        "start": 1.0,
+        "end": 1.5,
+        "bits_per_second": 40000000,
+        "bytes": 2500000
+      }
+    },
+    {
+      "sum": {
+        "start": 1.5,
+        "end": 2.0,
+        "bits_per_second": 5000000,
+        "bytes": 312500
+      }
+    },
+    {
+      "sum": {
+        "start": 2.0,
+        "end": 2.5,
+        "bits_per_second": 80000000,
+        "bytes": 5000000
+      }
+    }
+  ]
+}

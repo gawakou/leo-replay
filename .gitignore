@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local configuration and credentials
+config/experiment.env
+config/batch-profile.env
+.env
+*.pem
+*.key
+
+# Generated research data
+experiments/
+results/
+measure_*/
+replay_measure/
+*.pcap
+*.pcapng
+*.tar
+*.tar.gz
+*.zip
+
+# Generated figures/logs
+*.log
+*.png
+*.pdf
+*.csv
+*.json
+!examples/**/*.csv
+!examples/**/*.json
+
+# Editors / OS
+.DS_Store
+.vscode/
+.idea/

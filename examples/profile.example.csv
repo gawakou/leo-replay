@@ -1,0 +1,7 @@
+sec,delay_ms,jitter_ms,loss_pct,rate_mbit,reorder_pct,correlation_pct,note
+0.0,30,2,0,100,0,20,normal
+1.0,35,3,0.2,90,0,20,degrading
+2.0,80,8,3,40,0,20,handover_candidate
+2.5,140,15,12,10,0,10,handover_peak
+3.0,55,5,1,70,0,20,recovery
+4.0,30,2,0,100,0,20,stable
