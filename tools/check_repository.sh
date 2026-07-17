@@ -1,9 +1,8 @@
-\
 #!/usr/bin/env bash
 set -Eeuo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
-python3 -m compileall -q scripts dashboard tests
+python3 -m compileall -q src scripts dashboard tests
 bash -n scripts/orchestration/run_experiment.sh
 bash -n scripts/orchestration/run_batch_profile.sh
 pytest
