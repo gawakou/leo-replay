@@ -9,13 +9,17 @@ continuous Starlink measurement
 → measured/replayed comparison
 ```
 
-The repository preserves that axis. New functions should be added in this order:
+The repository preserves that axis. The implementation roadmap is:
 
-1. Stabilize the current profile replay and establish regression tests.
-2. Compare time-series replay with event-based replay.
-3. Improve short-duration event reproduction and bidirectional replay.
-4. Synchronize detected events with OMM/TLE-derived visibility information.
-5. Add path-switch and handover models.
-6. Use the same replay conditions to compare TCP, QUIC, and MPTCP controls.
+| Version | Research step | Status |
+|---|---|---|
+| v0.1.0 | Time-series profile generation and replay baseline | Completed |
+| v0.2.0 | Formalized event profile, event replay, timing and event-window evaluation | Completed |
+| v0.3.0 | Bidirectional replay and direction-specific profiles | Planned |
+| v0.4.0 | OMM/TLE visibility synchronization and candidate handover display | Planned |
+| v0.5.0 | Path switching and handover communication reproduction | Planned |
+| v0.6.0 | TCP, QUIC and MPTCP comparison under identical measured scenarios | Planned |
 
-OMM/TLE visualization, routing, and satellite reception models should therefore be implemented as extensions of the measurement-driven replay model, not as an unrelated model-only simulator.
+v0.2.0 directly addresses the paper's remaining issues: short-duration fluctuations, event-unit replay, and the comparison between waveform-level and event-level reproduction.
+
+OMM/TLE visualization, routing and satellite reception models should therefore be implemented as extensions of the measurement-driven replay model, not as an unrelated model-only simulator.

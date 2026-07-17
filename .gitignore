@@ -31,8 +31,12 @@ replay_measure/
 *.json
 !examples/**/*.csv
 !examples/**/*.json
+!schemas/**/*.json
 
 # Editors / OS
 .DS_Store
 .vscode/
 .idea/
+*.egg-info/
+build/
+dist/
