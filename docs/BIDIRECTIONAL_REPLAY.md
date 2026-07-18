@@ -106,3 +106,21 @@ forwardとreverseのコマンドは逐次実行される。50～100 ms程度の�
 - 可能ならコンソールまたは別管理NICを確保する。
 - IFB使用後に設定を除去する場合は`--cleanup-on-exit`を使う。
 - 強制中断後は、`tc qdisc show`、`tc filter show`、`ip link show`で残存設定を確認する。
+
+## 8. Virtual verification in v0.3.1
+
+実NICを使わずに`dual-egress`を検証する場合は、Docker ComposeまたはLinux network namespaceテストベッドを使用する。
+
+```bash
+bash labs/docker-bidirectional/run-fixed-condition-test.sh
+bash labs/docker-bidirectional/run-profile-test.sh
+```
+
+ネイティブLinuxでは次を使用する。
+
+```bash
+sudo bash labs/netns-bidirectional/run-fixed-condition-test.sh
+sudo bash labs/netns-bidirectional/run-profile-test.sh
+```
+
+構成、判定条件、保存される成果物、Docker Desktopと実ルータの精度上の差は`docs/VIRTUAL_TESTBED.md`に記載する。

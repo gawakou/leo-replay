@@ -1,0 +1,51 @@
+{
+  "status": "pass",
+  "baseline_ping": {
+    "minimum_ms": 0.108,
+    "average_ms": 0.152,
+    "maximum_ms": 0.266,
+    "deviation_ms": 0.05,
+    "samples_ms": [
+      0.113,
+      0.111,
+      0.222,
+      0.128,
+      0.116,
+      0.115,
+      0.143,
+      0.266,
+      0.219,
+      0.148,
+      0.139,
+      0.108
+    ],
+    "sample_count": 12
+  },
+  "impaired_ping": {
+    "minimum_ms": 51.459,
+    "average_ms": 56.443,
+    "maximum_ms": 59.699,
+    "deviation_ms": 2.441,
+    "samples_ms": [
+      51.5,
+      59.7,
+      53.5,
+      56.6,
+      55.0,
+      57.1,
+      58.8,
+      57.9,
+      59.0,
+      58.7,
+      55.2,
+      54.3
+    ],
+    "sample_count": 12
+  },
+  "rtt_delta_ms": 56.291,
+  "forward_throughput_mbps": 18.118866574084937,
+  "reverse_throughput_mbps": 54.1824665720587,
+  "configured_forward_rate_mbps": 20.0,
+  "configured_reverse_rate_mbps": 60.0,
+  "errors": []
+}

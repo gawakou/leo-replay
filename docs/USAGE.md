@@ -184,3 +184,26 @@ sudo ip link delete ifb0 type ifb
 ```
 
 Commands may report that a qdisc or device does not exist; this is harmless during cleanup.
+
+## Virtual bidirectional lab (v0.3.1)
+
+Docker Composeによる固定条件試験：
+
+```bash
+make docker-lab
+```
+
+方向別時系列プロファイルの実再生：
+
+```bash
+make docker-lab-profile
+```
+
+ネイティブUbuntuのnetwork namespace方式：
+
+```bash
+make netns-lab
+make netns-lab-profile
+```
+
+詳細は`docs/VIRTUAL_TESTBED.md`を参照する。

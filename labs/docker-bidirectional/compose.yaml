@@ -1,0 +1,60 @@
+name: leo-replay-bidirectional
+
+x-lab-image: &lab-image
+  build:
+    context: ../..
+    dockerfile: labs/docker-bidirectional/Dockerfile
+  image: leo-replay-lab:0.3.1
+
+services:
+  client:
+    <<: *lab-image
+    cap_add:
+      - NET_ADMIN
+    environment:
+      LEO_REMOTE_SUBNET: ${LEO_SERVICE_SUBNET:-10.220.0.0/24}
+      LEO_ROUTER_GATEWAY: ${LEO_ROUTER_ACCESS_IP:-10.210.0.2}
+    command: ["/opt/leo-replay/labs/docker-bidirectional/entrypoint-client.sh"]
+    networks:
+      access_net:
+        ipv4_address: ${LEO_CLIENT_IP:-10.210.0.10}
+
+  router:
+    <<: *lab-image
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      net.ipv4.ip_forward: "1"
+      net.ipv4.conf.all.rp_filter: "0"
+    command: ["/opt/leo-replay/labs/docker-bidirectional/entrypoint-router.sh"]
+    volumes:
+      - ./artifacts:/artifacts
+    networks:
+      access_net:
+        ipv4_address: ${LEO_ROUTER_ACCESS_IP:-10.210.0.2}
+      service_net:
+        ipv4_address: ${LEO_ROUTER_SERVICE_IP:-10.220.0.2}
+
+  server:
+    <<: *lab-image
+    cap_add:
+      - NET_ADMIN
+    environment:
+      LEO_REMOTE_SUBNET: ${LEO_ACCESS_SUBNET:-10.210.0.0/24}
+      LEO_ROUTER_GATEWAY: ${LEO_ROUTER_SERVICE_IP:-10.220.0.2}
+    command: ["/opt/leo-replay/labs/docker-bidirectional/entrypoint-server.sh"]
+    networks:
+      service_net:
+        ipv4_address: ${LEO_SERVER_IP:-10.220.0.10}
+
+networks:
+  access_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${LEO_ACCESS_SUBNET:-10.210.0.0/24}
+  service_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${LEO_SERVICE_SUBNET:-10.220.0.0/24}

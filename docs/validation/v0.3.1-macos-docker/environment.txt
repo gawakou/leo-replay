@@ -1,0 +1,52 @@
+# v0.3.1 macOS Docker validation
+
+Validated at UTC: 2026-07-18T11:39:13Z
+Git commit before merge: 6777f8a44ef8ef3cd3c245b5bdb23f6b42ad0f92
+
+## macOS
+ProductName:		macOS
+ProductVersion:		26.5
+BuildVersion:		25F71
+
+Architecture: arm64
+
+## Docker
+Client:
+ Version:           29.5.2
+ API version:       1.54
+ Go version:        go1.26.3
+ Git commit:        79eb04c
+ Built:             Wed May 20 14:37:21 2026
+ OS/Arch:           darwin/arm64
+ Context:           desktop-linux
+
+Server: Docker Desktop 4.76.0 (228118)
+ Engine:
+  Version:          29.5.2
+  API version:      1.54 (minimum version 1.40)
+  Go version:       go1.26.3
+  Git commit:       568f755
+  Built:            Wed May 20 14:39:17 2026
+  OS/Arch:          linux/arm64
+  Experimental:     false
+ containerd:
+  Version:          v2.2.4
+  GitCommit:        193637f7ee8ae5f5aa5248f49e7baa3e6164966e
+ runc:
+  Version:          1.3.5
+  GitCommit:        v1.3.5-0-g488fc13e
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        de40ad0
+
+Docker Compose version v5.1.4
+
+## leo-replay
+leo-replay 0.3.1
+
+## Results
+Fixed-condition test: PASS
+Directional profile test: PASS
+Forward mean lateness: 4.661 ms
+Reverse mean lateness: 6.060 ms
+Maximum lateness: 12.537 ms

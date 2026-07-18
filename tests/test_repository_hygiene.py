@@ -7,7 +7,7 @@ FORBIDDEN = [re.compile(r"/home/ogawa"), re.compile(r"192\.168\.1\.2"),
 
 
 def test_no_environment_specific_defaults_in_active_code():
-    targets = [ROOT / "scripts", ROOT / "dashboard", ROOT / "config"]
+    targets = [ROOT / "scripts", ROOT / "dashboard", ROOT / "config", ROOT / "labs"]
     findings = []
     for base in targets:
         for path in base.rglob("*"):
