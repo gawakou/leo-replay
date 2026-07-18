@@ -39,3 +39,11 @@ replay_measure/
 .idea/
 
 *.egg-info/
+
+# Virtual lab artifacts
+labs/**/artifacts/*
+!labs/**/artifacts/.gitkeep
+
+# Version-controlled validation summaries
+!docs/validation/**/fixed-summary.json
+!docs/validation/**/profile-summary.json

@@ -1,4 +1,6 @@
-.PHONY: setup test syntax check example-profile example-event example-directional archive
+.PHONY: setup test syntax check example-profile example-event example-directional \
+        docker-lab docker-lab-profile docker-lab-clean \
+        netns-lab netns-lab-profile netns-lab-clean archive
 
 setup:
 	python3 -m venv .venv
@@ -8,9 +10,8 @@ test:
 	pytest
 
 syntax:
-	python3 -m compileall -q src scripts dashboard tests
-	bash -n scripts/orchestration/run_experiment.sh
-	bash -n scripts/orchestration/run_batch_profile.sh
+	python3 -m compileall -q src scripts dashboard tests labs/common
+	find scripts labs -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
 
 check: syntax test
 
@@ -30,6 +31,24 @@ example-directional:
 	PYTHONPATH=src python3 -m leo_replay profile directionalize --mode timeseries \
 	  --input examples/profile.example.csv \
 	  --output /tmp/leo-profile-directional.csv
+
+docker-lab:
+	bash labs/docker-bidirectional/run-fixed-condition-test.sh
+
+docker-lab-profile:
+	bash labs/docker-bidirectional/run-profile-test.sh
+
+docker-lab-clean:
+	bash labs/docker-bidirectional/cleanup.sh
+
+netns-lab:
+	sudo bash labs/netns-bidirectional/run-fixed-condition-test.sh
+
+netns-lab-profile:
+	sudo bash labs/netns-bidirectional/run-profile-test.sh
+
+netns-lab-clean:
+	sudo bash labs/netns-bidirectional/cleanup.sh
 
 archive:
 	bash tools/create_release_archive.sh

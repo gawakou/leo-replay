@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.1 - 2026-07-17
+
+- Added a three-container Docker Compose bidirectional testbed.
+- Added a Linux network-namespace and veth bidirectional testbed.
+- Added fixed forward/reverse delay and bandwidth smoke tests.
+- Added directional time-series profile replay smoke tests.
+- Added ping, iperf3 and execution-log validation utilities.
+- Added Docker lab GitHub Actions workflow and virtual-testbed documentation.
+- Preserved v0.3.0 dual-egress and IFB replay behavior.
+
 ## 0.3.0 - 2026-07-17
 
 - Added forward/reverse directional time-series profiles.

@@ -67,3 +67,7 @@ A directional profile can contain directly measured directional values or values
 ## Current boundaries
 
 TLE/OMM, satellite visibility, route switching, MPTCP path orchestration, and the Starlink collector remain outside v0.3.0.
+
+## Virtual validation backends (v0.3.1)
+
+`labs/docker-bidirectional/` and `labs/netns-bidirectional/` instantiate the same logical Client–Router–Server topology. They do not replace the replay engine; they provide controlled virtual interfaces on which the existing `dual-egress` backend is exercised. Fixed-condition tests isolate routing and qdisc behavior, while profile tests exercise the complete directional CSV→scheduler→tc→measurement path.

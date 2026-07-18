@@ -2,11 +2,11 @@
 
 Starlinkを含む低軌道衛星（LEO）通信の**実測データに基づく通信挙動再現基盤**です。ping、iperf3、端末状態ログを時系列またはイベントプロファイルへ変換し、Linuxルータ上の `tc` / `netem` で再生して、同一条件下で通信方式を比較評価します。
 
-現在のリリースは **v0.3.0** です。v0.2.0のイベント再現機能を維持し、クライアント→サーバ方向とサーバ→クライアント方向を独立に制御する双方向再現を追加しました。
+現在のリリースは **v0.3.1** です。v0.3.0の双方向再現機能に加え、Docker ComposeおよびLinux network namespaceでClient–Router–Server構成を再現し、実NICなしで固定条件と方向別プロファイルを検証できるテストベッドを追加しました。
 
 > 研究用プロトタイプです。共同研究者・所属機関との確認が済むまではPrivate repositoryでの運用を推奨します。
 
-## v0.3.0の主な機能
+## v0.3.1の主な機能
 
 - `dual-egress`：2つのルータNICのegressを独立制御
 - `ifb`：1つの物理NICのegressと、IFBへredirectしたingressを独立制御
@@ -16,6 +16,10 @@ Starlinkを含む低軌道衛星（LEO）通信の**実測データに基づく�
 - RTTの等分、パス損失確率を保存する方向別損失分解、逆方向帯域の明示
 - 方向別の`tc`適用時刻、適用遅延、通信条件をJSON Linesへ記録
 - v0.1.0の時系列再生、v0.2.0のイベント再生との後方互換
+- Docker Composeによる3コンテナ双方向テストベッド
+- Linux network namespaceとvethによる双方向テストベッド
+- 固定遅延・帯域と方向別プロファイルの自動スモークテスト
+- ping、iperf3、direction-specific execution logの自動検証
 
 ## 研究上の位置づけ
 
@@ -43,7 +47,7 @@ leo-replay --version
 期待値：
 
 ```text
-leo-replay 0.3.0
+leo-replay 0.3.1
 ```
 
 ## 従来プロファイルの双方向化
@@ -128,6 +132,24 @@ sudo .venv/bin/leo-replay replay \
 
 実験終了時にqdiscとingress redirectを除去する場合は`--cleanup-on-exit`を付けます。IFBデバイス自体も削除する場合は`--delete-ifb-device`も付けます。
 
+## 仮想双方向テストベッド
+
+Docker Desktop、Docker Engine、またはネイティブUbuntuのnetwork namespaceで、実NICを用いずに双方向再現を検証できます。
+
+```bash
+bash labs/docker-bidirectional/run-fixed-condition-test.sh
+bash labs/docker-bidirectional/run-profile-test.sh
+```
+
+ネイティブLinuxでは次を使用します。
+
+```bash
+sudo bash labs/netns-bidirectional/run-fixed-condition-test.sh
+sudo bash labs/netns-bidirectional/run-profile-test.sh
+```
+
+詳細は [docs/VIRTUAL_TESTBED.md](docs/VIRTUAL_TESTBED.md) を参照してください。
+
 ## 片方向モードとの互換性
 
 ```bash
@@ -155,6 +177,7 @@ scripts/evaluation/     既存比較・集計・描画
 examples/               合成サンプルと方向別プロファイル
 legacy/                 旧版スクリプト
 tests/                  単体・統合・回帰テスト
+labs/                   Docker・network namespace仮想テストベッド
 docs/                   設計、利用手順、研究継続性
 ```
 
@@ -164,6 +187,7 @@ docs/                   設計、利用手順、研究継続性
 - 従来のRTTを双方向へ分解した値は推定値です。
 - forward/reverseのNIC対応はルータの物理配線に依存します。実験前に`tcpdump -i <dev>`等で確認してください。
 - 2方向の`tc`コマンドは逐次適用されるため、短時間イベントでは方向間に適用時刻差が生じます。`execution-log`で確認してください。
+- Docker Desktopは機能確認向けであり、短時間イベントの最終精度はネイティブUbuntuまたは実ルータで評価してください。
 - Starlink実測データ計測プログラム本体、TLE/OMM連携、経路切替は未収録です。
 
 詳細は [docs/BIDIRECTIONAL_REPLAY.md](docs/BIDIRECTIONAL_REPLAY.md) と [docs/USAGE.md](docs/USAGE.md) を参照してください。
