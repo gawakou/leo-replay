@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0",
+  "profile_type": "event",
+  "metadata": {
+    "created_at": "2026-07-17T00:00:00+00:00",
+    "generator": "leo-replay example",
+    "time_reference": "relative",
+    "bin_sec": 0.1,
+    "directionalization": {
+      "delay_policy": "split",
+      "delay_forward_share": 0.5,
+      "jitter_policy": "split",
+      "loss_policy": "equivalent",
+      "rate_policy": "forward-only",
+      "reverse_default_rate_mbit": 260.0
+    }
+  },
+  "baseline": {
+    "rate_mbit": 100.0,
+    "delay_ms": 15.0,
+    "jitter_ms": 1.0,
+    "loss_pct": 0.0,
+    "directions": {
+      "forward": {
+        "delay_ms": 7.5,
+        "jitter_ms": 0.5,
+        "loss_pct": 0.0,
+        "rate_mbit": 100.0,
+        "reorder_pct": 0.0,
+        "correlation_pct": 0.0
+      },
+      "reverse": {
+        "delay_ms": 7.5,
+        "jitter_ms": 0.5,
+        "loss_pct": 0.0,
+        "rate_mbit": 260.0,
+        "reorder_pct": 0.0,
+        "correlation_pct": 0.0
+      }
+    }
+  },
+  "events": [
+    {
+      "event_id": "EV-0001",
+      "event_type": "handover_suspected",
+      "start_sec": 2.0,
+      "end_sec": 2.2,
+      "duration_sec": 0.2,
+      "severity": 2,
+      "confidence": 0.8,
+      "source_type": "DERIVED",
+      "parameters": {
+        "rate_mbit": 25.0,
+        "delay_ms": 45.0,
+        "jitter_ms": 8.0,
+        "loss_pct": 12.0,
+        "spike_ms": 25.0
+      },
+      "observations": {
+        "bins": 2,
+        "avg_rate_mbps": 25.0,
+        "max_loss_pct": 12.0,
+        "avg_delay_ms": 45.0,
+        "avg_ping_rtt_ms": 90.0,
+        "max_ping_timeout_ratio": 0.25,
+        "dominant_grpc_state": "CONNECTED",
+        "avg_pop_ping_latency_ms": 45.0,
+        "max_fraction_obstructed": 0.0
+      },
+      "calibration": {
+        "calibrated_delay_ms": 45.0,
+        "calibrated_jitter_ms": 8.0,
+        "calibrated_spike_ms": 25.0
+      },
+      "directions": {
+        "forward": {
+          "delay_ms": 35.0,
+          "jitter_ms": 4.0,
+          "loss_pct": 6.191684803531405,
+          "rate_mbit": 25.0,
+          "reorder_pct": 0.0,
+          "correlation_pct": 0.0
+        },
+        "reverse": {
+          "delay_ms": 35.0,
+          "jitter_ms": 4.0,
+          "loss_pct": 6.191684803531405,
+          "rate_mbit": 260.0,
+          "reorder_pct": 0.0,
+          "correlation_pct": 0.0
+        }
+      }
+    }
+  ]
+}

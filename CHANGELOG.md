@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 - 2026-07-17
+
+- Added forward/reverse directional time-series profiles.
+- Added backward-compatible directional extensions to Event Profile v1.
+- Added legacy RTT, jitter, loss and rate directionalization policies.
+- Added end-to-end-loss-preserving probability decomposition.
+- Added dual-egress replay for two-NIC inline Linux routers.
+- Added IFB ingress redirect and independent ingress/egress replay.
+- Added direction-specific tc application timing logs.
+- Added directional profile, event, tc backend and CLI regression tests.
+- Preserved v0.2 single-direction workflows.
+
 ## 0.2.0 - 2026-07-17
 
 - Added the unified `leo-replay` command-line interface.

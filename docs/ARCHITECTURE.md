@@ -9,42 +9,61 @@ Starlink measurements
   └─ grpc.csv
         │
         ▼
-Unified CLI: leo-replay profile generate
-  ├─ time-series profile.csv
+leo-replay profile generate
+  ├─ legacy time-series CSV
   └─ Event Profile v1
         │
         ▼
-Unified CLI: leo-replay replay
-  ├─ tc_csv_replay.py
-  └─ tc_event_replay_calibrated.py
-        │
-        ├─ tc/TBF/netem
-        └─ execution timing JSONL
+leo-replay profile directionalize
+  ├─ forward/reverse time-series CSV
+  ├─ Event Profile v1 + directions
+  └─ conversion metadata JSON
         │
         ▼
-Remote measurement
-  ├─ iperf3 JSON
-  └─ ping CSV
+leo-replay replay
+  ├─ single (v0.2 compatibility)
+  ├─ dual-egress
+  │    ├─ forward egress qdisc
+  │    └─ reverse egress qdisc
+  └─ IFB
+       ├─ physical egress qdisc
+       ├─ ingress redirect
+       └─ IFB egress qdisc
         │
         ▼
-leo-replay evaluate events
-  ├─ event-window MAE/RMSE
-  ├─ onset/duration error
-  ├─ peak magnitude/time error
-  └─ timeout-ratio error
+Direction-specific execution JSONL
+        │
+        ▼
+Remote ping / iperf3 measurement and event evaluation
 ```
 
-## v0.2.0 package boundary
+## Package boundary
 
-`src/leo_replay/`が新しい安定インターフェースを提供する。既存の研究コードは`script/profile`, `scripts/replay`, `scripts/evaluation`に残し、CLIから互換入口として呼び出す。この構成により、論文評価で使用した処理を直ちに全面改修せず、段階的に共通ライブラリへ移行できる。
+`src/leo_replay/` provides the stable interface.
 
-## Event Profile compatibility
+- `event_profile.py`: Event Profile v1 compatibility and validation
+- `event_metrics.py`: event-window evaluation
+- `directional_profile.py`: directional conversion and CSV/event handling
+- `tc_backend.py`: tc/netem and IFB command generation
+- `bidirectional_replay.py`: directional scheduling and timing logs
+- `cli.py`: public command-line interface
 
-- 新規実験: Event Profile v1を推奨
-- 既存実験: 旧JSON配列を自動正規化
-- 既存補正処理: v1と旧形式の両方を保持
-- 既存自動実験: 従来スクリプト入口を継続利用可能
+Legacy research scripts remain in `scripts/` and are still used by `--direction-mode single` and profile generation. This preserves continuity with the implementation used for the current paper while new functions move into testable package modules.
+
+## Direction backends
+
+### dual-egress
+
+Designed for the current inline two-NIC router. Each direction is controlled at the egress interface closest to its destination.
+
+### IFB
+
+Designed for cases where one physical interface must represent both egress and ingress. Ingress is redirected to IFB and shaped on IFB egress.
+
+## Scientific provenance boundary
+
+A directional profile can contain directly measured directional values or values derived from an end-to-end legacy profile. The conversion sidecar records the assumption. The runtime does not claim that derived values are measured directional conditions.
 
 ## Current boundaries
 
-リポジトリは変換、再生、実験制御、評価を対象とする。Starlink計測collector、双方向IFB制御、TLE/OMM連携、衛星可視性、複数経路切替は未実装である。
+TLE/OMM, satellite visibility, route switching, MPTCP path orchestration, and the Starlink collector remain outside v0.3.0.

@@ -1,23 +1,39 @@
 # Data formats
 
-## 1. Time-series profile CSV
+## 1. Legacy time-series CSV
 
 Required column: `sec`.
 
 | Column | Meaning |
 |---|---|
-| `sec` | 再生開始からの相対秒 |
-| `delay_ms` | netem delay |
-| `jitter_ms` | delay variation |
-| `loss_pct` | packet loss percentage |
-| `rate_mbit` | rate limit |
-| `reorder_pct` | packet reordering percentage |
+| `sec` | Replay time relative to start |
+| `delay_ms` | Legacy delay value; often derived from RTT |
+| `jitter_ms` | Legacy delay variation |
+| `loss_pct` | Legacy end-to-end/path loss estimate |
+| `rate_mbit` | Observed or replay rate |
+| `reorder_pct` | Packet reordering percentage |
 | `correlation_pct` | netem correlation parameter |
-| `note` | state or provenance note |
+| `note` | State or provenance note |
 
-## 2. Event Profile v1
+## 2. Directional time-series CSV
 
-v0.2.0からイベント形式を次のトップレベル構造に統一した。
+Canonical columns:
+
+```text
+sec,
+forward_delay_ms,forward_jitter_ms,forward_loss_pct,forward_rate_mbit,
+forward_reorder_pct,forward_correlation_pct,
+reverse_delay_ms,reverse_jitter_ms,reverse_loss_pct,reverse_rate_mbit,
+reverse_reorder_pct,reverse_correlation_pct,note
+```
+
+`forward` means client-to-server and `reverse` means server-to-client in the experiment definition. Aliases such as `delay_up_ms`, `loss_up_pct`, `delay_down_ms`, and `loss_down_pct` are accepted when reading, but canonical output always uses `forward_*` and `reverse_*`.
+
+A directional row must contain both directions. A legacy row containing neither direction is converted according to the selected policy.
+
+## 3. Event Profile v1 directional extension
+
+The v1 top-level structure is unchanged.
 
 ```json
 {
@@ -29,52 +45,72 @@ v0.2.0からイベント形式を次のトップレベル構造に統一した�
 }
 ```
 
-### baseline
+v0.3.0 adds an optional `directions` object to `baseline` and each event.
 
-平常時に適用する `rate_mbit`, `delay_ms`, `jitter_ms`, `loss_pct` を保持する。
-
-### events
-
-各イベントは以下を保持する。
-
-| Field | Meaning |
-|---|---|
-| `event_id` | イベントを一意に識別するID |
-| `event_type` | `handover_suspected`等の分類 |
-| `start_sec`, `end_sec` | 再生開始からの相対時刻 |
-| `duration_sec` | イベント継続時間 |
-| `severity` | 0～4の深刻度 |
-| `confidence` | 0～1の推定信頼度 |
-| `source_type` | `MEASURED`, `DERIVED`, `INFERRED`, `SYNTHETIC` |
-| `parameters` | 再生に適用する通信条件 |
-| `observations` | 実測から集約した統計値 |
-| `calibration` | 反復補正で得た値と誤差 |
-
-`parameters`には `rate_mbit`, `delay_ms`, `jitter_ms`, `loss_pct`, `spike_ms` を含む。
-
-完全な形式は `schemas/event-profile-v1.schema.json` を参照する。旧版のJSON配列は読込み時にv1へ正規化できる。
-
-## 3. Ping CSV
-
-`time_s`が必須で、`rtt_ms`および`timeout`を使用する。timeout行では`rtt_ms`を空欄にできる。
-
-```csv
-time_s,rtt_ms,timeout
-0.0,31.2,0
-0.2,,1
+```json
+{
+  "directions": {
+    "forward": {
+      "delay_ms": 20.0,
+      "jitter_ms": 2.0,
+      "loss_pct": 1.0,
+      "rate_mbit": 50.0,
+      "reorder_pct": 0.0,
+      "correlation_pct": 0.0
+    },
+    "reverse": {
+      "delay_ms": 18.0,
+      "jitter_ms": 1.5,
+      "loss_pct": 0.5,
+      "rate_mbit": 100.0,
+      "reorder_pct": 0.0,
+      "correlation_pct": 0.0
+    }
+  }
+}
 ```
 
-## 4. Event execution JSON Lines
+The legacy scalar `parameters` remain required for backward compatibility. When `directions` is present, bidirectional replay uses it. When absent, the scalar condition is converted using the requested legacy policy.
 
-イベント再生時に`--execution-log`を指定すると、一行一JSONで以下を記録する。
+## 4. Directionalization metadata
 
-- `baseline`
-- `event_start`
-- `event_end`
-- `final_baseline`
+`profile directionalize` writes a sidecar JSON containing:
 
-`event_start`には予定時刻、適用時刻、遅延量、適用パラメータを含む。Linux実環境でのスケジューラ・`tc`適用遅延の把握に使用する。
+- input and output paths
+- mode (`timeseries` or `event`)
+- delay, jitter, loss and rate policies
+- forward share
+- reverse default rate
+- number of states or events
 
-## 5. Event evaluation JSON/CSV
+This file records which values are measured and which are derived by a directionalization assumption.
 
-イベントごとに実測・再生の検出開始、終了、継続時間、RTTピーク、timeout率、RTT MAE/RMSEを記録する。トップレベル`aggregate`にはイベント間の平均絶対誤差を保持する。
+## 5. Bidirectional execution JSON Lines
+
+Each applied direction is recorded separately.
+
+```json
+{
+  "action": "timeseries_state",
+  "event_id": null,
+  "direction": "forward",
+  "device": "enp3s0",
+  "planned_sec": 2.0,
+  "applied_sec": 2.0031,
+  "lateness_ms": 3.1,
+  "parameters": {
+    "delay_ms": 40.0,
+    "jitter_ms": 4.0,
+    "loss_pct": 1.5,
+    "rate_mbit": 40.0,
+    "reorder_pct": 0.0,
+    "correlation_pct": 20.0
+  }
+}
+```
+
+Forward and reverse are separate records because the two `tc` commands are applied sequentially.
+
+## 6. Existing measurement and evaluation formats
+
+Ping CSV uses `time_s`, `rtt_ms`, and `timeout`. Event evaluation output continues to provide event-window RTT MAE/RMSE, onset/end/duration errors, peak errors, and timeout-ratio errors.

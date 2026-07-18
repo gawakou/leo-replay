@@ -19,3 +19,10 @@
 - MAE/RMSE/correlation calculations
 
 These should be modified only with corresponding regression datasets and paper-level evaluation.
+
+## v0.3.0 additions
+
+8. Bidirectional replay is implemented in new package modules; the v0.2.0 single-direction scripts remain unchanged for regression compatibility.
+9. Legacy RTT/path-loss profiles are not relabeled as measured directional data. A sidecar records the conversion policy.
+10. The dual-egress backend is recommended for the current two-NIC router. IFB is provided for topologies where ingress shaping on a single physical device is required.
+11. Root-level Linux execution remains an external smoke test; CI verifies command generation and dry-run behavior only.
