@@ -207,3 +207,39 @@ make netns-lab-profile
 ```
 
 詳細は`docs/VIRTUAL_TESTBED.md`を参照する。
+
+## Orbit context (v0.4.0)
+
+Create provenance metadata:
+
+```bash
+leo-replay orbit import \
+  --input examples/orbit/iss-omm.example.json \
+  --output /tmp/orbit-source.json
+```
+
+Calculate visibility candidates:
+
+```bash
+leo-replay orbit visibility \
+  --orbit examples/orbit/iss-omm.example.json \
+  --site examples/orbit/observer-hiroshima.example.json \
+  --start 2024-05-06T19:53:05Z \
+  --duration-sec 10 \
+  --step-sec 1 \
+  --minimum-elevation-deg -90 \
+  --all-satellites \
+  --output /tmp/visibility.csv
+```
+
+Annotate event windows:
+
+```bash
+leo-replay orbit annotate-events \
+  --events examples/events-directional-v1.example.json \
+  --visibility /tmp/visibility.csv \
+  --observation-start-utc 2024-05-06T19:53:03Z \
+  --output /tmp/event-orbit-annotations.json
+```
+
+See `docs/ORBIT_CONTEXT.md` for interpretation and reproducibility requirements.

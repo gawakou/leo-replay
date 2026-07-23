@@ -2,12 +2,18 @@
 
 Starlinkを含む低軌道衛星（LEO）通信の**実測データに基づく通信挙動再現基盤**です。ping、iperf3、端末状態ログを時系列またはイベントプロファイルへ変換し、Linuxルータ上の `tc` / `netem` で再生して、同一条件下で通信方式を比較評価します。
 
-現在のリリースは **v0.3.1** です。v0.3.0の双方向再現機能に加え、Docker ComposeおよびLinux network namespaceでClient–Router–Server構成を再現し、実NICなしで固定条件と方向別プロファイルを検証できるテストベッドを追加しました。
+現在のリリースは **v0.4.0** です。v0.3.1までの双方向再現・仮想テストベッドに加え、OMM JSON／CSVおよびTLEを読み込み、観測地点からの可視衛星候補、仰角・方位角・斜距離、軌道要素epoch距離を計算し、通信イベントへ軌道コンテキストを付与できるようになりました。
 
 > 研究用プロトタイプです。共同研究者・所属機関との確認が済むまではPrivate repositoryでの運用を推奨します。
 
-## v0.3.1の主な機能
+## v0.4.0の主な機能
 
+- OMM JSON／CSVおよび従来TLEのオフライン読込み
+- 軌道入力ファイルのSHA-256、取得時刻、要素epoch範囲を記録するprovenance manifest
+- 観測地点からの仰角・方位角・斜距離と可視候補CSVの生成
+- 軌道要素epochからの時間差とstale flag、SGP4 propagation errorの記録
+- Event Profile v1を変更しないbefore／during／after候補集合のannotation sidecar
+- 「可視候補」と「実接続衛星」を明確に分離するデータ意味論
 - `dual-egress`：2つのルータNICのegressを独立制御
 - `ifb`：1つの物理NICのegressと、IFBへredirectしたingressを独立制御
 - 双方向時系列プロファイルCSV
@@ -47,8 +53,28 @@ leo-replay --version
 期待値：
 
 ```text
-leo-replay 0.3.1
+leo-replay 0.4.0
 ```
+
+## 軌道コンテキストの最小例
+
+```bash
+leo-replay orbit import \
+  --input examples/orbit/iss-omm.example.json \
+  --output /tmp/orbit-source.json
+
+leo-replay orbit visibility \
+  --orbit examples/orbit/iss-omm.example.json \
+  --site examples/orbit/observer-hiroshima.example.json \
+  --start 2024-05-06T19:53:05Z \
+  --duration-sec 10 \
+  --step-sec 1 \
+  --minimum-elevation-deg -90 \
+  --all-satellites \
+  --output /tmp/visibility.csv
+```
+
+実験では、観測時刻に近い軌道要素と実際の観測地点を使用してください。出力は可視候補であり、端末が接続していた衛星の特定結果ではありません。詳細は [docs/ORBIT_CONTEXT.md](docs/ORBIT_CONTEXT.md) を参照してください。
 
 ## 従来プロファイルの双方向化
 
@@ -166,8 +192,8 @@ leo-replay replay \
 ## リポジトリ構成
 
 ```text
-src/leo_replay/         統一CLI、イベント形式、双方向変換・再生・評価
-schemas/                Event Profile v1 JSON Schema
+src/leo_replay/         統一CLI、イベント形式、双方向変換・再生・評価、軌道コンテキスト
+schemas/                Event、軌道入力、可視性、annotationのJSON Schema
 config/                 実験設定テンプレート
 collector/              計測プログラム追加予定の入口
 scripts/orchestration/  実験全体の制御
@@ -188,7 +214,7 @@ docs/                   設計、利用手順、研究継続性
 - forward/reverseのNIC対応はルータの物理配線に依存します。実験前に`tcpdump -i <dev>`等で確認してください。
 - 2方向の`tc`コマンドは逐次適用されるため、短時間イベントでは方向間に適用時刻差が生じます。`execution-log`で確認してください。
 - Docker Desktopは機能確認向けであり、短時間イベントの最終精度はネイティブUbuntuまたは実ルータで評価してください。
-- Starlink実測データ計測プログラム本体、TLE/OMM連携、経路切替は未収録です。
+- Starlink実測データ計測プログラム本体、オンライン軌道データ取得、実接続衛星の同定、経路切替は未収録です。
 
 詳細は [docs/BIDIRECTIONAL_REPLAY.md](docs/BIDIRECTIONAL_REPLAY.md) と [docs/USAGE.md](docs/USAGE.md) を参照してください。
 
