@@ -114,3 +114,15 @@ Forward and reverse are separate records because the two `tc` commands are appli
 ## 6. Existing measurement and evaluation formats
 
 Ping CSV uses `time_s`, `rtt_ms`, and `timeout`. Event evaluation output continues to provide event-window RTT MAE/RMSE, onset/end/duration errors, peak errors, and timeout-ratio errors.
+
+## Orbit context formats (v0.4.0)
+
+v0.4.0 adds four schema-controlled JSON document types and one CSV output:
+
+- Observer Site v1: `schemas/observer-site-v1.schema.json`
+- Orbit Source Manifest v1: `schemas/orbit-source-v1.schema.json`
+- Visibility Metadata v1: `schemas/visibility-profile-v1.schema.json`
+- Event Orbit Annotation v1: `schemas/event-orbit-annotation-v1.schema.json`
+- Visibility CSV: columns documented in `docs/ORBIT_CONTEXT.md`
+
+The original OMM/TLE file remains an immutable input. The source manifest stores its SHA-256 and epoch range. Visibility output is derived and event annotations are stored separately from Event Profile v1.

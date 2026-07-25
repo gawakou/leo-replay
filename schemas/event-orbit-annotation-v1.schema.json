@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/leo-replay/event-orbit-annotation-v1.schema.json",
+  "title": "LEO Replay Event Orbit Annotation v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "annotation_type",
+    "generated_at_utc",
+    "generator",
+    "metadata",
+    "annotations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "annotation_type": {
+      "const": "event_orbit_context"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "generator": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "annotations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "event_id",
+          "event_type",
+          "event_start_utc",
+          "event_end_utc",
+          "candidate_satellites_before",
+          "candidate_satellites_during",
+          "candidate_satellites_after",
+          "candidate_set_changed",
+          "source_type",
+          "interpretation"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "event_start_utc": {
+            "type": "string"
+          },
+          "event_end_utc": {
+            "type": "string"
+          },
+          "candidate_satellites_before": {
+            "$ref": "#/$defs/candidates"
+          },
+          "candidate_satellites_during": {
+            "$ref": "#/$defs/candidates"
+          },
+          "candidate_satellites_after": {
+            "$ref": "#/$defs/candidates"
+          },
+          "candidate_set_changed": {
+            "type": "boolean"
+          },
+          "minimum_epoch_distance_sec": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "source_type": {
+            "const": "DERIVED"
+          },
+          "interpretation": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "norad_cat_id",
+          "satellite_name",
+          "max_elevation_deg",
+          "minimum_epoch_distance_sec"
+        ],
+        "properties": {
+          "norad_cat_id": {
+            "type": "string"
+          },
+          "satellite_name": {
+            "type": "string"
+          },
+          "object_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "max_elevation_deg": {
+            "type": "number"
+          },
+          "minimum_epoch_distance_sec": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

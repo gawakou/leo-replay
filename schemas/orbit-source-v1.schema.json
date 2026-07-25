@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/leo-replay/orbit-source-v1.schema.json",
+  "title": "LEO Replay Orbit Source Manifest v1",
+  "type": "object",
+  "required": ["schema_version", "manifest_type", "generated_at_utc", "generator", "source", "satellite_count", "element_epoch_min_utc", "element_epoch_max_utc", "satellites"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "manifest_type": {"const": "orbit_source"},
+    "generated_at_utc": {"type": "string"},
+    "generator": {"type": "string"},
+    "source": {
+      "type": "object",
+      "required": ["local_file", "format", "sha256"],
+      "properties": {
+        "name": {"type": ["string", "null"]},
+        "uri": {"type": ["string", "null"]},
+        "retrieved_at_utc": {"type": ["string", "null"]},
+        "local_file": {"type": "string"},
+        "format": {"enum": ["omm-json", "omm-csv", "tle"]},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "satellite_count": {"type": "integer", "minimum": 1},
+    "element_epoch_min_utc": {"type": "string"},
+    "element_epoch_max_utc": {"type": "string"},
+    "satellites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "norad_cat_id", "element_epoch_utc"],
+        "properties": {
+          "name": {"type": "string"},
+          "norad_cat_id": {"type": "string"},
+          "object_id": {"type": ["string", "null"]},
+          "element_epoch_utc": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

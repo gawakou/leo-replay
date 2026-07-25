@@ -1,0 +1,11 @@
+{
+  "site_id": "hiroshima-example",
+  "name": "Hiroshima example observation site",
+  "latitude_deg": 34.4,
+  "longitude_deg": 132.7,
+  "elevation_m": 30.0,
+  "metadata": {
+    "source_type": "SYNTHETIC",
+    "note": "Approximate coordinates for offline examples; replace with the actual measurement site."
+  }
+}

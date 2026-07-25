@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 - 2026-07-18
+
+- Added offline OMM JSON, OMM CSV, and legacy TLE orbit-element loaders.
+- Added immutable orbit-source provenance manifests with SHA-256 and epoch ranges.
+- Added validated observer-site definitions.
+- Added SGP4-based topocentric elevation, azimuth, and slant-range calculation.
+- Added visibility CSV and metadata sidecars with epoch-distance, staleness, and propagation-error fields.
+- Added before/during/after visible-candidate annotations for Event Profile v1.
+- Kept orbit annotations separate from replay profiles and explicitly avoided connected-satellite claims.
+- Added orbit schemas, offline fixtures, CLI workflows, documentation, and regression tests.
+
 ## 0.3.1 - 2026-07-17
 
 - Added a three-container Docker Compose bidirectional testbed.

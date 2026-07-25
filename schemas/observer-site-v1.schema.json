@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/leo-replay/observer-site-v1.schema.json",
+  "title": "LEO Replay Observer Site v1",
+  "type": "object",
+  "required": ["site_id", "name", "latitude_deg", "longitude_deg"],
+  "properties": {
+    "site_id": {"type": "string", "minLength": 1},
+    "name": {"type": "string", "minLength": 1},
+    "latitude_deg": {"type": "number", "minimum": -90, "maximum": 90},
+    "longitude_deg": {"type": "number", "minimum": -180, "maximum": 180},
+    "elevation_m": {"type": "number", "minimum": -500, "maximum": 10000},
+    "metadata": {"type": "object"}
+  },
+  "additionalProperties": false
+}

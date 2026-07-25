@@ -1,4 +1,4 @@
-.PHONY: setup test syntax check example-profile example-event example-directional \
+.PHONY: setup test syntax check example-profile example-event example-directional example-orbit \
         docker-lab docker-lab-profile docker-lab-clean \
         netns-lab netns-lab-profile netns-lab-clean archive
 
@@ -31,6 +31,17 @@ example-directional:
 	PYTHONPATH=src python3 -m leo_replay profile directionalize --mode timeseries \
 	  --input examples/profile.example.csv \
 	  --output /tmp/leo-profile-directional.csv
+
+example-orbit:
+	PYTHONPATH=src python3 -m leo_replay orbit import \
+	  --input examples/orbit/iss-omm.example.json \
+	  --output /tmp/leo-orbit-source.json
+	PYTHONPATH=src python3 -m leo_replay orbit visibility \
+	  --orbit examples/orbit/iss-omm.example.json \
+	  --site examples/orbit/observer-hiroshima.example.json \
+	  --start 2024-05-06T19:53:05Z --duration-sec 2 --step-sec 1 \
+	  --minimum-elevation-deg -90 --all-satellites \
+	  --output /tmp/leo-visibility.csv
 
 docker-lab:
 	bash labs/docker-bidirectional/run-fixed-condition-test.sh

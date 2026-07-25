@@ -71,3 +71,27 @@ TLE/OMM, satellite visibility, route switching, MPTCP path orchestration, and th
 ## Virtual validation backends (v0.3.1)
 
 `labs/docker-bidirectional/` and `labs/netns-bidirectional/` instantiate the same logical Client–Router–Server topology. They do not replace the replay engine; they provide controlled virtual interfaces on which the existing `dual-egress` backend is exercised. Fixed-condition tests isolate routing and qdisc behavior, while profile tests exercise the complete directional CSV→scheduler→tc→measurement path.
+
+## Orbit context layer (v0.4.0)
+
+```text
+OMM JSON / OMM CSV / TLE
+            |
+            v
+      OrbitCatalog
+       |        |
+       |        +--> source manifest + SHA-256
+       v
+ObserverSite + UTC sampling
+            |
+            v
+  visibility CSV + metadata
+            |
+            v
+relative Event Profile v1 + observation start UTC
+            |
+            v
+ event-orbit annotation sidecar
+```
+
+The orbit layer is intentionally separate from replay control. It cannot alter `tc/netem` state in v0.4.0 and does not claim the identity of the connected satellite.

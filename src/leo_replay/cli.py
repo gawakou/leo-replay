@@ -37,6 +37,18 @@ from .event_profile import (
     validate_document,
 )
 from .tc_backend import CommandRunner, TcBackendError, require_linux_root
+from .orbit import (
+    ObserverSite,
+    OrbitDataError,
+    annotate_event_document,
+    compute_visibility,
+    create_source_manifest,
+    load_catalog,
+    load_visibility_rows,
+    write_visibility_csv,
+)
+from .orbit.models import sha256_file
+from .orbit.provenance import save_json as save_orbit_json
 
 
 def repository_root() -> Path:
@@ -182,6 +194,39 @@ def build_parser() -> argparse.ArgumentParser:
     events.add_argument("--search-margin-sec", type=float, default=0.5)
     events.add_argument("--align-tolerance-sec", type=float, default=0.11)
     events.add_argument("--threshold-ms", type=float)
+
+    orbit = sub.add_parser("orbit", help="Import orbit elements and derive visibility context")
+    orbit_sub = orbit.add_subparsers(dest="orbit_command", required=True)
+
+    orbit_import = orbit_sub.add_parser("import", help="Inspect orbit elements and create a provenance manifest")
+    orbit_import.add_argument("--input", required=True, type=Path)
+    orbit_import.add_argument("--format", choices=["auto", "omm-json", "omm-csv", "tle"], default="auto")
+    orbit_import.add_argument("--output", required=True, type=Path)
+    orbit_import.add_argument("--source-name")
+    orbit_import.add_argument("--source-uri")
+    orbit_import.add_argument("--retrieved-at-utc")
+
+    visibility = orbit_sub.add_parser("visibility", help="Calculate visible satellite candidates")
+    visibility.add_argument("--orbit", required=True, type=Path)
+    visibility.add_argument("--format", choices=["auto", "omm-json", "omm-csv", "tle"], default="auto")
+    visibility.add_argument("--site", required=True, type=Path)
+    visibility.add_argument("--start", required=True, help="UTC ISO-8601 timestamp")
+    visibility.add_argument("--duration-sec", required=True, type=float)
+    visibility.add_argument("--step-sec", type=float, default=1.0)
+    visibility.add_argument("--minimum-elevation-deg", type=float, default=25.0)
+    visibility.add_argument("--stale-after-days", type=float, default=14.0)
+    visibility.add_argument("--satellite", action="append", default=[], help="Name, NORAD ID, or object ID; repeatable")
+    visibility.add_argument("--all-satellites", action="store_true", help="Include rows below the elevation threshold")
+    visibility.add_argument("--output", required=True, type=Path)
+    visibility.add_argument("--metadata-output", type=Path)
+
+    annotate = orbit_sub.add_parser("annotate-events", help="Attach visibility candidates to relative event windows")
+    annotate.add_argument("--events", required=True, type=Path)
+    annotate.add_argument("--visibility", required=True, type=Path)
+    annotate.add_argument("--observation-start-utc", required=True)
+    annotate.add_argument("--window-before-sec", type=float, default=1.0)
+    annotate.add_argument("--window-after-sec", type=float, default=1.0)
+    annotate.add_argument("--output", required=True, type=Path)
 
     return parser
 
@@ -462,6 +507,70 @@ def evaluate_event_profiles(args: argparse.Namespace) -> int:
     return 0
 
 
+def import_orbit_source(args: argparse.Namespace) -> int:
+    catalog = load_catalog(args.input, args.format)
+    manifest = create_source_manifest(
+        catalog,
+        source_name=args.source_name,
+        source_uri=args.source_uri,
+        retrieved_at_utc=args.retrieved_at_utc,
+    )
+    save_orbit_json(args.output, manifest)
+    print(json.dumps({
+        "satellites": len(catalog.satellites),
+        "format": catalog.source_format,
+        "output": str(args.output),
+    }, ensure_ascii=False, indent=2))
+    return 0
+
+
+def calculate_orbit_visibility(args: argparse.Namespace) -> int:
+    catalog = load_catalog(args.orbit, args.format).select(args.satellite)
+    site = ObserverSite.load(args.site)
+    result = compute_visibility(
+        catalog,
+        site,
+        start_utc=args.start,
+        duration_sec=args.duration_sec,
+        step_sec=args.step_sec,
+        minimum_elevation_deg=args.minimum_elevation_deg,
+        only_visible=not args.all_satellites,
+        stale_after_days=args.stale_after_days,
+    )
+    write_visibility_csv(args.output, result.rows)
+    metadata_output = args.metadata_output or Path(str(args.output) + ".meta.json")
+    save_orbit_json(metadata_output, result.metadata)
+    print(json.dumps({
+        "satellites": len(catalog.satellites),
+        "rows": len(result.rows),
+        "output": str(args.output),
+        "metadata_output": str(metadata_output),
+        "stale_row_count": result.metadata["stale_row_count"],
+        "propagation_error_count": result.metadata["propagation_error_count"],
+    }, ensure_ascii=False, indent=2))
+    return 0
+
+
+def annotate_orbit_events(args: argparse.Namespace) -> int:
+    event_document = load_document(args.events)
+    visibility_rows = load_visibility_rows(args.visibility)
+    annotation = annotate_event_document(
+        event_document,
+        visibility_rows,
+        observation_start_utc=args.observation_start_utc,
+        window_before_sec=args.window_before_sec,
+        window_after_sec=args.window_after_sec,
+        visibility_source=str(args.visibility),
+        visibility_sha256=sha256_file(args.visibility),
+    )
+    save_orbit_json(args.output, annotation)
+    print(json.dumps({
+        "events": len(annotation["annotations"]),
+        "output": str(args.output),
+    }, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -476,6 +585,12 @@ def main(argv: list[str] | None = None) -> int:
             return validate_profile(args)
         if args.command == "evaluate" and args.evaluate_command == "events":
             return evaluate_event_profiles(args)
+        if args.command == "orbit" and args.orbit_command == "import":
+            return import_orbit_source(args)
+        if args.command == "orbit" and args.orbit_command == "visibility":
+            return calculate_orbit_visibility(args)
+        if args.command == "orbit" and args.orbit_command == "annotate-events":
+            return annotate_orbit_events(args)
     except (
         ValueError,
         FileNotFoundError,
@@ -483,6 +598,7 @@ def main(argv: list[str] | None = None) -> int:
         EventProfileError,
         DirectionalProfileError,
         TcBackendError,
+        OrbitDataError,
         json.JSONDecodeError,
     ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

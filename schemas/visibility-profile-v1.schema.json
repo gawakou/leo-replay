@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/leo-replay/visibility-profile-v1.schema.json",
+  "title": "LEO Replay Visibility Metadata v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "profile_type",
+    "generated_at_utc",
+    "source_file",
+    "source_format",
+    "source_sha256",
+    "element_epoch_min_utc",
+    "element_epoch_max_utc",
+    "site",
+    "start_utc",
+    "duration_sec",
+    "step_sec",
+    "sample_count",
+    "satellite_count",
+    "minimum_elevation_deg",
+    "only_visible",
+    "row_count",
+    "visible_counts",
+    "stale_after_days",
+    "stale_row_count",
+    "propagation_error_count"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "profile_type": {
+      "const": "visibility"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "source_file": {
+      "type": "string"
+    },
+    "source_format": {
+      "enum": [
+        "omm-json",
+        "omm-csv",
+        "tle"
+      ]
+    },
+    "site": {
+      "type": "object"
+    },
+    "start_utc": {
+      "type": "string"
+    },
+    "duration_sec": {
+      "type": "number",
+      "minimum": 0
+    },
+    "step_sec": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "sample_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "satellite_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "minimum_elevation_deg": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90
+    },
+    "only_visible": {
+      "type": "boolean"
+    },
+    "row_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "visible_counts": {
+      "type": "array"
+    },
+    "stale_after_days": {
+      "type": "number",
+      "minimum": 0
+    },
+    "stale_row_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "propagation_error_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "element_epoch_min_utc": {
+      "type": "string"
+    },
+    "element_epoch_max_utc": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}
