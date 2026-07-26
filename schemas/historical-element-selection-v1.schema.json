@@ -1,0 +1,264 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/leo-replay/historical-element-selection-v1.schema.json",
+  "title": "LEO Replay Historical Element Selection v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "selection_type",
+    "generated_at_utc",
+    "generator",
+    "source",
+    "policy",
+    "summary",
+    "observations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "selection_type": {
+      "const": "historical_orbit_element_selection"
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "generator": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "path",
+        "format",
+        "sha256",
+        "record_count"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "omm-json",
+            "omm-csv"
+          ]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "record_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "request_fingerprint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "snapshot_manifest_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "causal_rule",
+        "retrospective_rule",
+        "availability_lag_sec",
+        "missing_creation_date_policy",
+        "stale_after_days",
+        "position_warning_km"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "causal",
+            "retrospective",
+            "compare"
+          ]
+        },
+        "availability_lag_sec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "missing_creation_date_policy": {
+          "enum": [
+            "exclude",
+            "error"
+          ]
+        },
+        "stale_after_days": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "position_warning_km": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "summary": {
+      "type": "object"
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "observation_time_utc",
+          "causal_knowledge_cutoff_utc",
+          "satellites"
+        ],
+        "properties": {
+          "observation_time_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "causal_knowledge_cutoff_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "satellites": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "norad_cat_id",
+                "available_record_count",
+                "causal",
+                "retrospective",
+                "comparison",
+                "bracketing_element_sensitivity",
+                "flags"
+              ],
+              "properties": {
+                "norad_cat_id": {
+                  "type": "string"
+                },
+                "object_name": {
+                  "type": "string"
+                },
+                "available_record_count": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "causal": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/selection"
+                    }
+                  ]
+                },
+                "retrospective": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/selection"
+                    }
+                  ]
+                },
+                "comparison": {
+                  "type": "object"
+                },
+                "bracketing_element_sensitivity": {
+                  "type": "object"
+                },
+                "flags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "$defs": {
+    "selection": {
+      "type": "object",
+      "required": [
+        "source_index",
+        "record_fingerprint",
+        "norad_cat_id",
+        "epoch_utc",
+        "absolute_epoch_distance_sec",
+        "stale_element",
+        "position_at_observation"
+      ],
+      "properties": {
+        "source_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "record_fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "norad_cat_id": {
+          "type": "string"
+        },
+        "epoch_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "creation_date_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "absolute_epoch_distance_sec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "stale_element": {
+          "type": "boolean"
+        },
+        "position_at_observation": {
+          "type": "object",
+          "required": [
+            "gcrs_km",
+            "subpoint_latitude_deg",
+            "subpoint_longitude_deg",
+            "height_km",
+            "propagation_error"
+          ]
+        },
+        "element_fields": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

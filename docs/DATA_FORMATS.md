@@ -139,3 +139,21 @@ Schema: `schemas/orbit-snapshot-v1.schema.json`. A snapshot directory contains:
 - `manifest.json`: request fingerprint, provider, retrieval time, part hashes, combined hash, bytes, and record counts.
 
 Space-Track credential values are never included. Causal/retrospective element selection is not encoded in this schema.
+
+## Historical Element Selection v1 (v0.4.2)
+
+Schema: `schemas/historical-element-selection-v1.schema.json`.
+
+The document records:
+
+- source OMM or snapshot SHA-256;
+- causal and retrospective selection rules;
+- observation and causal knowledge-cutoff times;
+- selected element fields and record fingerprints;
+- epoch distance, creation age, staleness, and propagation errors;
+- GCRS position and WGS84 sub-satellite coordinates;
+- causal/retrospective position difference;
+- nearest-before/nearest-after element sensitivity;
+- summary counts and explicit warning flags.
+
+A position difference is an element-selection sensitivity indicator and is not a covariance-derived confidence interval.

@@ -69,7 +69,7 @@ leo-replay orbit fetch space-track \
   --output-dir orbit-snapshots/run-20260701-history
 ```
 
-Large ID sets are split into bounded requests and merged into one `orbit.json`, while every raw response part is retained separately. v0.4.1 does not yet choose causal or retrospective elements from the history; that selection is planned for v0.4.2.
+Large ID sets are split into bounded requests and merged into one `orbit.json`, while every raw response part is retained separately. v0.4.2 consumes these immutable histories and selects causal and retrospective elements using explicit `CREATION_DATE` and `EPOCH` policies.
 
 ## Verification and downstream use
 

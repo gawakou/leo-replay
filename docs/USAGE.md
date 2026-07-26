@@ -276,3 +276,35 @@ leo-replay orbit verify-snapshot --input-dir orbit-snapshots/history
 ```
 
 See `docs/ORBIT_ACQUISITION.md`.
+
+## Historical element selection (v0.4.2)
+
+Compare the element available at the observation time with the archived element whose epoch is closest:
+
+```bash
+leo-replay orbit select-elements \
+  --input examples/orbit/iss-history.example.json \
+  --mode compare \
+  --time 2024-05-06T19:55:00Z \
+  --output /tmp/iss-selection.json
+```
+
+Use a verified Space-Track `GP_History` snapshot for a time series:
+
+```bash
+leo-replay orbit select-elements \
+  --input orbit-snapshots/space-track-history \
+  --mode compare \
+  --start 2026-07-01T00:00:00Z \
+  --duration-sec 300 \
+  --step-sec 1 \
+  --satellite 25544 \
+  --availability-lag-sec 30 \
+  --stale-after-days 14 \
+  --position-warning-km 10 \
+  --output /tmp/history-selection.json
+```
+
+Use `--missing-creation-date-policy error` when every causal decision must be based on a complete `CREATION_DATE`. The default `exclude` policy records a warning and prevents missing values from being treated as available.
+
+For a small, self-contained selection document, add `--include-element-fields`. For constellation-scale time series, omit it and retain the immutable source snapshot referenced by SHA-256 and record index.

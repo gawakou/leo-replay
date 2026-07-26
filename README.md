@@ -2,12 +2,17 @@
 
 Starlinkを含む低軌道衛星（LEO）通信の**実測データに基づく通信挙動再現基盤**です。ping、iperf3、端末状態ログを時系列またはイベントプロファイルへ変換し、Linuxルータ上の `tc` / `netem` で再生して、同一条件下で通信方式を比較評価します。
 
-現在のリリースは **v0.4.1** です。v0.4.0の軌道コンテキストに加え、CelesTrakおよびSpace-Trackから軌道要素を取得し、要求条件、rawレスポンス、SHA-256、HTTPヘッダ、結合済みOMM/TLEを再検証可能なスナップショットとして固定できます。
+現在のリリースは **v0.4.2** です。v0.4.1の再検証可能な軌道スナップショット取得に加え、観測時点で利用可能だった要素を選ぶcausal modeと、事後解析でepochが最も近い要素を選ぶretrospective modeを分離して比較できます。
 
 > 研究用プロトタイプです。共同研究者・所属機関との確認が済むまではPrivate repositoryでの運用を推奨します。
 
-## v0.4.1の主な機能
+## v0.4.2の主な機能
 
+- causal mode：観測時刻までに作成された軌道要素から最新の`CREATION_DATE`を選択
+- retrospective mode：観測時刻に対して絶対`EPOCH`距離が最小の要素を選択
+- causal／retrospective要素を同一時刻へSGP4伝搬し、位置差を感度指標として記録
+- WGS84の衛星直下点を出力し、将来のMap比較表示へ接続
+- availability lag、stale判定、欠損`CREATION_DATE`の明示的除外・エラー制御
 - CelesTrakのCATNR／INTDES／GROUP／NAME／SPECIALによる現在GP取得
 - Space-TrackのGP／GP_History取得と環境変数による認証
 - NORAD IDリストの分割取得とrawレスポンス保持
@@ -58,7 +63,7 @@ leo-replay --version
 期待値：
 
 ```text
-leo-replay 0.4.1
+leo-replay 0.4.2
 ```
 
 ## 軌道スナップショット取得
@@ -74,6 +79,19 @@ leo-replay orbit verify-snapshot \
 ```
 
 Space-Trackでは認証情報を環境変数から読み込み、`gp_history`をNORAD ID単位で分割取得できます。認証情報は保存されません。詳細は [docs/ORBIT_ACQUISITION.md](docs/ORBIT_ACQUISITION.md) を参照してください。
+
+
+## 履歴軌道要素の選択
+
+```bash
+leo-replay orbit select-elements \
+  --input examples/orbit/iss-history.example.json \
+  --mode compare \
+  --time 2024-05-06T19:55:00Z \
+  --output /tmp/iss-element-selection.json
+```
+
+causal modeは`CREATION_DATE`が観測時刻以前の要素だけを対象とし、retrospective modeは事後的に`EPOCH`が最も近い要素を選びます。詳細は [docs/HISTORICAL_ELEMENT_SELECTION.md](docs/HISTORICAL_ELEMENT_SELECTION.md) を参照してください。
 
 ## 軌道コンテキストの最小例
 

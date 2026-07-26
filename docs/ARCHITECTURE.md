@@ -119,3 +119,23 @@ CelesTrak GP / Space-Track GP or GP_History
 ```
 
 The acquisition layer has no replay-control authority. Historical selection is a later deterministic transformation over a verified snapshot.
+
+## Historical element selection layer (v0.4.2)
+
+The selection layer consumes OMM JSON/CSV or a verified v0.4.1 snapshot and produces an auditable decision document for each observation time.
+
+```text
+immutable GP_History snapshot
+        ↓
+record grouping by NORAD_CAT_ID
+        ├── causal: latest CREATION_DATE before cutoff
+        └── retrospective: nearest EPOCH
+        ↓
+SGP4 propagation at observation time
+        ↓
+position delta, sub-satellite point, sensitivity flags
+        ↓
+future map/timeline visualization
+```
+
+The layer does not modify the source snapshot and does not infer the serving satellite. Full selected OMM records and stable record fingerprints remain in the output for replay and audit.

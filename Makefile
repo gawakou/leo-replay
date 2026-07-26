@@ -1,4 +1,4 @@
-.PHONY: setup test syntax check example-profile example-event example-directional example-orbit \
+.PHONY: setup test syntax check example-profile example-event example-directional example-orbit example-orbit-selection \
         docker-lab docker-lab-profile docker-lab-clean \
         netns-lab netns-lab-profile netns-lab-clean archive
 
@@ -42,6 +42,12 @@ example-orbit:
 	  --start 2024-05-06T19:53:05Z --duration-sec 2 --step-sec 1 \
 	  --minimum-elevation-deg -90 --all-satellites \
 	  --output /tmp/leo-visibility.csv
+
+example-orbit-selection:
+	PYTHONPATH=src python3 -m leo_replay orbit select-elements \
+	  --input examples/orbit/iss-history.example.json \
+	  --mode compare --time 2024-05-06T19:55:00Z \
+	  --output /tmp/leo-historical-selection.json
 
 docker-lab:
 	bash labs/docker-bidirectional/run-fixed-condition-test.sh
