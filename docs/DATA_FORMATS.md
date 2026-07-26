@@ -157,3 +157,16 @@ The document records:
 - summary counts and explicit warning flags.
 
 A position difference is an element-selection sensitivity indicator and is not a covariance-derived confidence interval.
+
+## Visualization Bundle v1
+
+`leo-replay viz build` writes `data.json` according to `schemas/visualization-bundle-v1.schema.json`. Each frame is defined by a v0.4.2 historical-selection observation and includes:
+
+- observation timestamp and elapsed time;
+- normalized communication metrics;
+- active Event Profile v1 entries;
+- causal and retrospective WGS84 subpoints;
+- optional visibility, elevation, azimuth, and slant range;
+- causal/retrospective position delta and selection flags.
+
+The companion `manifest.json` hashes `index.html`, `data.json`, and `README.txt`. The HTML embeds its assets and data so it can be opened without a server or internet connection.

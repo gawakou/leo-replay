@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{TITLE}}</title>
+  <style>{{STYLE}}</style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">LEO REPLAY · ORBIT CONTEXT</p>
+      <h1 id="pageTitle">{{TITLE}}</h1>
+      <p id="timeCaption" class="subtitle">Loading timeline…</p>
+    </div>
+    <div class="header-actions">
+      <span class="mode-key causal-key">Causal</span>
+      <span class="mode-key retrospective-key">Retrospective</span>
+      <button id="playButton" type="button">Play</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel map-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="section-kicker">Geographic view</p>
+          <h2>Satellite subpoints</h2>
+        </div>
+        <div class="toggles">
+          <label><input id="showCausal" type="checkbox" checked> Causal</label>
+          <label><input id="showRetrospective" type="checkbox" checked> Retrospective</label>
+          <label><input id="showTrails" type="checkbox" checked> Trails</label>
+          <label><input id="visibleOnly" type="checkbox"> Visible only</label>
+        </div>
+      </div>
+      <div class="map-shell">
+        <svg id="mapSvg" viewBox="0 0 1000 520" role="img" aria-label="World map with reconstructed satellite positions"></svg>
+        <div class="map-note">Geometric reconstruction only — not proof of the serving satellite.</div>
+      </div>
+    </section>
+
+    <aside class="panel detail-panel">
+      <p class="section-kicker">Current frame</p>
+      <div class="timestamp" id="currentTimestamp">—</div>
+      <div class="metric-grid">
+        <article><span>Delay / RTT</span><strong id="metricDelay">—</strong></article>
+        <article><span>Throughput</span><strong id="metricRate">—</strong></article>
+        <article><span>Loss</span><strong id="metricLoss">—</strong></article>
+        <article><span>Visible</span><strong id="metricVisible">—</strong></article>
+      </div>
+      <div class="event-box">
+        <span>Active event</span>
+        <strong id="activeEvent">None</strong>
+      </div>
+      <div class="comparison-box">
+        <span>Maximum causal–retrospective delta</span>
+        <strong id="maximumDelta">—</strong>
+      </div>
+      <div class="site-box" id="siteBox"></div>
+      <div class="semantic-note">
+        <h3>Interpretation</h3>
+        <p><b>Causal</b> uses information available by the observation-time knowledge cutoff.</p>
+        <p><b>Retrospective</b> uses the element whose epoch is closest to the observation time.</p>
+      </div>
+    </aside>
+
+    <section class="panel timeline-panel">
+      <div class="panel-heading timeline-heading">
+        <div>
+          <p class="section-kicker">Synchronized replay</p>
+          <h2>Communication timeline</h2>
+        </div>
+        <div class="timeline-index"><span id="frameNumber">1</span> / <span id="frameTotal">1</span></div>
+      </div>
+      <svg id="timelineSvg" viewBox="0 0 1100 250" role="img" aria-label="Communication metrics timeline"></svg>
+      <input id="timeSlider" class="time-slider" type="range" min="0" max="0" value="0" step="1">
+    </section>
+
+    <section class="panel table-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="section-kicker">Candidate detail</p>
+          <h2>Satellites at selected time</h2>
+        </div>
+        <input id="satelliteFilter" class="filter-input" type="search" placeholder="Filter name or NORAD ID">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Satellite</th>
+              <th>Visible</th>
+              <th>Elevation</th>
+              <th>Causal epoch age</th>
+              <th>Retrospective epoch age</th>
+              <th>Position delta</th>
+              <th>Flags</th>
+            </tr>
+          </thead>
+          <tbody id="satelliteTable"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span id="bundleFooter"></span>
+    <span>Self-contained offline visualization</span>
+  </footer>
+
+  <script id="world-data" type="application/json">{{WORLD_DATA}}</script>
+  <script id="bundle-data" type="application/json">{{BUNDLE_DATA}}</script>
+  <script>{{SCRIPT}}</script>
+</body>
+</html>

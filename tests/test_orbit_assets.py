@@ -12,6 +12,7 @@ def test_orbit_schemas_and_examples_are_valid_json():
         ROOT / "schemas/event-orbit-annotation-v1.schema.json",
         ROOT / "schemas/orbit-snapshot-v1.schema.json",
         ROOT / "schemas/historical-element-selection-v1.schema.json",
+        ROOT / "schemas/visualization-bundle-v1.schema.json",
         ROOT / "examples/orbit/observer-hiroshima.example.json",
         ROOT / "examples/orbit/iss-omm.example.json",
         ROOT / "examples/orbit/iss-history.example.json",
@@ -27,3 +28,5 @@ def test_orbit_documentation_exists():
     assert (ROOT / "docs/V0.4.1_IMPLEMENTATION.md").is_file()
     assert (ROOT / "docs/HISTORICAL_ELEMENT_SELECTION.md").is_file()
     assert (ROOT / "docs/V0.4.2_IMPLEMENTATION.md").is_file()
+    assert (ROOT / "docs/SYNCHRONIZED_VISUALIZATION.md").is_file()
+    assert (ROOT / "docs/V0.4.3_IMPLEMENTATION.md").is_file()

@@ -16,3 +16,10 @@ python scripts/profile/starlink_merge_realdata_to_profile.py   --ping examples/r
 ## Historical orbit selection
 
 `orbit/iss-history.example.json` contains multiple OMM records with distinct `EPOCH` and `CREATION_DATE` values. It is designed to demonstrate that causal and retrospective policies can select different records for the same observation time.
+
+## Visualization
+
+- `visualization/communication.example.csv`: relative communication metrics used by `make example-visualization`.
+- `visualization/events.example.json`: a synthetic event aligned with the visualization timeline.
+
+The generated HTML bundle is written outside the repository by default.

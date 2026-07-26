@@ -57,6 +57,7 @@ from .orbit import (
 )
 from .orbit.models import sha256_file
 from .orbit.provenance import save_json as save_orbit_json
+from .visualization import build_visualization_bundle, serve_visualization_bundle
 
 
 def repository_root() -> Path:
@@ -318,6 +319,38 @@ def build_parser() -> argparse.ArgumentParser:
     annotate.add_argument("--window-before-sec", type=float, default=1.0)
     annotate.add_argument("--window-after-sec", type=float, default=1.0)
     annotate.add_argument("--output", required=True, type=Path)
+
+    viz = sub.add_parser("viz", help="Build and serve synchronized orbit-map visualizations")
+    viz_sub = viz.add_subparsers(dest="viz_command", required=True)
+
+    viz_build = viz_sub.add_parser(
+        "build", help="Build a self-contained 2D map and communication timeline bundle"
+    )
+    viz_build.add_argument("--selection", required=True, type=Path)
+    viz_build.add_argument("--site", required=True, type=Path)
+    viz_build.add_argument("--profile", type=Path)
+    viz_build.add_argument("--visibility", type=Path)
+    viz_build.add_argument("--events", type=Path)
+    viz_build.add_argument(
+        "--profile-start-utc",
+        help="UTC origin for relative profile and event seconds; defaults to first selection frame",
+    )
+    viz_build.add_argument("--title")
+    viz_build.add_argument("--visibility-tolerance-sec", type=float, default=0.75)
+    viz_build.add_argument("--maximum-satellites", type=int, default=20000)
+    viz_build.add_argument("--output-dir", required=True, type=Path)
+    viz_build.add_argument("--force", action="store_true")
+
+    viz_serve = viz_sub.add_parser("serve", help="Serve a built visualization bundle locally")
+    viz_serve.add_argument("--input-dir", required=True, type=Path)
+    viz_serve.add_argument("--host", default="127.0.0.1")
+    viz_serve.add_argument("--port", type=int, default=8765)
+    viz_serve.add_argument("--open-browser", action="store_true")
+    viz_serve.add_argument(
+        "--allow-remote",
+        action="store_true",
+        help="Permit binding to a non-loopback address; the server has no authentication",
+    )
 
     return parser
 
@@ -754,6 +787,35 @@ def annotate_orbit_events(args: argparse.Namespace) -> int:
     return 0
 
 
+def build_visualization_command(args: argparse.Namespace) -> int:
+    result = build_visualization_bundle(
+        selection_path=args.selection,
+        site_path=args.site,
+        profile_path=args.profile,
+        visibility_path=args.visibility,
+        events_path=args.events,
+        profile_start_utc=args.profile_start_utc,
+        title=args.title,
+        visibility_tolerance_sec=args.visibility_tolerance_sec,
+        maximum_satellites=args.maximum_satellites,
+        output_dir=args.output_dir,
+        force=args.force,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def serve_visualization_command(args: argparse.Namespace) -> int:
+    serve_visualization_bundle(
+        args.input_dir,
+        host=args.host,
+        port=args.port,
+        open_browser=args.open_browser,
+        allow_remote=args.allow_remote,
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -780,6 +842,10 @@ def main(argv: list[str] | None = None) -> int:
             return calculate_orbit_visibility(args)
         if args.command == "orbit" and args.orbit_command == "annotate-events":
             return annotate_orbit_events(args)
+        if args.command == "viz" and args.viz_command == "build":
+            return build_visualization_command(args)
+        if args.command == "viz" and args.viz_command == "serve":
+            return serve_visualization_command(args)
     except (
         ValueError,
         FileNotFoundError,

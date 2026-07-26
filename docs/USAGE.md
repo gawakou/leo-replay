@@ -308,3 +308,33 @@ leo-replay orbit select-elements \
 Use `--missing-creation-date-policy error` when every causal decision must be based on a complete `CREATION_DATE`. The default `exclude` policy records a warning and prevents missing values from being treated as available.
 
 For a small, self-contained selection document, add `--include-element-fields`. For constellation-scale time series, omit it and retain the immutable source snapshot referenced by SHA-256 and record index.
+
+## Synchronized orbit map and timeline
+
+Generate map-ready historical positions and build an offline bundle:
+
+```bash
+leo-replay orbit select-elements \
+  --input examples/orbit/iss-history.example.json \
+  --mode compare \
+  --start 2024-05-06T19:53:00Z \
+  --duration-sec 150 \
+  --step-sec 30 \
+  --output /tmp/selection.json
+
+leo-replay viz build \
+  --selection /tmp/selection.json \
+  --site examples/orbit/observer-hiroshima.example.json \
+  --profile examples/visualization/communication.example.csv \
+  --events examples/visualization/events.example.json \
+  --profile-start-utc 2024-05-06T19:53:00Z \
+  --output-dir /tmp/leo-replay-viz
+```
+
+Open `index.html` directly, or serve it locally:
+
+```bash
+leo-replay viz serve --input-dir /tmp/leo-replay-viz --open-browser
+```
+
+The server binds to loopback by default. See `docs/SYNCHRONIZED_VISUALIZATION.md` for synchronization rules and interpretation limits.

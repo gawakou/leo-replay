@@ -19,6 +19,7 @@ results/
 measure_*/
 replay_measure/
 orbit-snapshots/
+visualization-bundles/
 *.pcap
 *.pcapng
 *.tar
@@ -41,6 +42,8 @@ orbit-snapshots/
 .idea/
 
 *.egg-info/
+build/
+dist/
 
 # Virtual lab artifacts
 labs/**/artifacts/*

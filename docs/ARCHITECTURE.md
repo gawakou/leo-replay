@@ -139,3 +139,15 @@ future map/timeline visualization
 ```
 
 The layer does not modify the source snapshot and does not infer the serving satellite. Full selected OMM records and stable record fingerprints remain in the output for replay and audit.
+
+## v0.4.3 visualization layer
+
+```text
+Historical Selection v1 ─┐
+Visibility CSV ──────────┤
+Communication profile ───┼─> visualization normalizer ─> self-contained HTML bundle
+Event Profile v1 ────────┤
+Observer site ────────────┘
+```
+
+The visualization layer is downstream of measurement, replay, orbit acquisition, and element selection. It does not mutate source profiles and does not feed inferred satellite identity back into replay. All inputs are recorded by hash, and causal/retrospective semantics remain explicit in every frame.

@@ -2,16 +2,24 @@
 
 Starlinkを含む低軌道衛星（LEO）通信の**実測データに基づく通信挙動再現基盤**です。ping、iperf3、端末状態ログを時系列またはイベントプロファイルへ変換し、Linuxルータ上の `tc` / `netem` で再生して、同一条件下で通信方式を比較評価します。
 
-現在のリリースは **v0.4.2** です。v0.4.1の再検証可能な軌道スナップショット取得に加え、観測時点で利用可能だった要素を選ぶcausal modeと、事後解析でepochが最も近い要素を選ぶretrospective modeを分離して比較できます。
+現在のリリースは **v0.4.3** です。v0.4.2のcausal／retrospective履歴軌道要素選択に加え、衛星直下点、通信品質、イベント、可視候補を同一時刻で操作できる自己完結型2D Map＋タイムラインを生成できます。
 
 > 研究用プロトタイプです。共同研究者・所属機関との確認が済むまではPrivate repositoryでの運用を推奨します。
 
-## v0.4.2の主な機能
+## v0.4.3の主な機能
 
+- causal／retrospective衛星直下点を同一2D Map上で比較表示
+- 時刻スライダ、再生・停止、キーボード操作による同期表示
+- RTT／遅延、スループット、損失、イベント帯の通信タイムライン
+- 観測地点、可視候補、仰角、位置差、stale／warning flagの表示
+- CSS・JavaScript・地図形状・データを埋め込んだ自己完結型HTML
+- 外部タイル、CDN、フォント、テレメトリを利用しないオフライン動作
+- 入力SHA-256と出力bundle manifestによる再検証
+- loopback既定の`viz serve`と非loopback bindの明示的許可
 - causal mode：観測時刻までに作成された軌道要素から最新の`CREATION_DATE`を選択
 - retrospective mode：観測時刻に対して絶対`EPOCH`距離が最小の要素を選択
 - causal／retrospective要素を同一時刻へSGP4伝搬し、位置差を感度指標として記録
-- WGS84の衛星直下点を出力し、将来のMap比較表示へ接続
+- WGS84の衛星直下点を出力し、同期Map比較表示へ接続
 - availability lag、stale判定、欠損`CREATION_DATE`の明示的除外・エラー制御
 - CelesTrakのCATNR／INTDES／GROUP／NAME／SPECIALによる現在GP取得
 - Space-TrackのGP／GP_History取得と環境変数による認証
@@ -63,8 +71,33 @@ leo-replay --version
 期待値：
 
 ```text
-leo-replay 0.4.2
+leo-replay 0.4.3
 ```
+
+
+## 同期Mapと通信タイムライン
+
+```bash
+leo-replay orbit select-elements \
+  --input examples/orbit/iss-history.example.json \
+  --mode compare \
+  --start 2024-05-06T19:53:00Z \
+  --duration-sec 150 \
+  --step-sec 30 \
+  --output /tmp/iss-selection.json
+
+leo-replay viz build \
+  --selection /tmp/iss-selection.json \
+  --site examples/orbit/observer-hiroshima.example.json \
+  --profile examples/visualization/communication.example.csv \
+  --events examples/visualization/events.example.json \
+  --profile-start-utc 2024-05-06T19:53:00Z \
+  --output-dir /tmp/leo-replay-viz
+
+open /tmp/leo-replay-viz/index.html
+```
+
+Map上の点は軌道要素による幾何学的再構成であり、端末が実際に接続していた衛星を示しません。詳細は [docs/SYNCHRONIZED_VISUALIZATION.md](docs/SYNCHRONIZED_VISUALIZATION.md) を参照してください。
 
 ## 軌道スナップショット取得
 
@@ -129,7 +162,7 @@ leo-replay profile directionalize \
 ```bash
 leo-replay profile directionalize \
   --mode event \
-  --input examples/events-v1.example.json \
+  --input examples/visualization/events.example.json \
   --output /tmp/events-directional.json
 ```
 
