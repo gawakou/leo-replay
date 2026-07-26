@@ -243,3 +243,36 @@ leo-replay orbit annotate-events \
 ```
 
 See `docs/ORBIT_CONTEXT.md` for interpretation and reproducibility requirements.
+
+
+## Orbit snapshot acquisition (v0.4.1)
+
+CelesTrak current GP snapshot:
+
+```bash
+leo-replay orbit fetch celestrak \
+  --group STARLINK \
+  --format json \
+  --output-dir orbit-snapshots/celestrak-starlink
+```
+
+Space-Track historical snapshot:
+
+```bash
+export SPACETRACK_IDENTITY='account@example.org'
+export SPACETRACK_PASSWORD='...'
+leo-replay orbit fetch space-track \
+  --class gp_history \
+  --norad-id-file examples/orbit/norad-ids.example.txt \
+  --start 2026-07-01T00:00:00Z \
+  --stop 2026-07-01T01:00:00Z \
+  --output-dir orbit-snapshots/history
+```
+
+Verify before downstream use:
+
+```bash
+leo-replay orbit verify-snapshot --input-dir orbit-snapshots/history
+```
+
+See `docs/ORBIT_ACQUISITION.md`.

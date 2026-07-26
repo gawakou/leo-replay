@@ -8,6 +8,7 @@ venv/
 # Local configuration and credentials
 config/experiment.env
 config/batch-profile.env
+config/space-track.env
 .env
 *.pem
 *.key
@@ -17,6 +18,7 @@ experiments/
 results/
 measure_*/
 replay_measure/
+orbit-snapshots/
 *.pcap
 *.pcapng
 *.tar

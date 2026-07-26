@@ -66,7 +66,7 @@ A directional profile can contain directly measured directional values or values
 
 ## Current boundaries
 
-TLE/OMM, satellite visibility, route switching, MPTCP path orchestration, and the Starlink collector remain outside v0.3.0.
+Route switching, MPTCP path orchestration, and the Starlink collector remain outside the current release.
 
 ## Virtual validation backends (v0.3.1)
 
@@ -95,3 +95,27 @@ relative Event Profile v1 + observation start UTC
 ```
 
 The orbit layer is intentionally separate from replay control. It cannot alter `tc/netem` state in v0.4.0 and does not claim the identity of the connected satellite.
+
+
+## Orbit snapshot acquisition layer (v0.4.1)
+
+```text
+CelesTrak GP / Space-Track GP or GP_History
+                    |
+                    v
+       provider-specific request builder
+                    |
+                    v
+ raw response parts + headers + request.json
+                    |
+                    v
+        merged orbit.json/csv/tle
+                    |
+                    v
+ manifest.json + request fingerprint + SHA-256
+                    |
+                    v
+      v0.4.0 OrbitCatalog / visibility
+```
+
+The acquisition layer has no replay-control authority. Historical selection is a later deterministic transformation over a verified snapshot.

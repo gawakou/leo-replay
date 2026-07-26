@@ -44,6 +44,8 @@ def run_cli(*args):
 def test_orbit_help_lists_core_commands():
     result = run_cli("orbit", "--help")
     assert result.returncode == 0, result.stderr
+    assert "fetch" in result.stdout
+    assert "verify-snapshot" in result.stdout
     assert "import" in result.stdout
     assert "visibility" in result.stdout
     assert "annotate-events" in result.stdout

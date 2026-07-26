@@ -4,7 +4,7 @@ x-lab-image: &lab-image
   build:
     context: ../..
     dockerfile: labs/docker-bidirectional/Dockerfile
-  image: leo-replay-lab:0.4.0
+  image: leo-replay-lab:0.4.1
 
 services:
   client:
