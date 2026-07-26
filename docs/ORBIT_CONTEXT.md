@@ -235,7 +235,7 @@ At minimum, record:
 - No actual connected-satellite identification
 - No beam, gateway, or inter-satellite-link model
 - No automatic handover detector
-- No synchronized visualization; planned for v0.4.1
+- No synchronized visualization; planned for a later map/timeline release after v0.4.2
 - CPU/memory optimization for full-constellation, sub-second, long-duration analysis remains future work
 
 ## Technical basis

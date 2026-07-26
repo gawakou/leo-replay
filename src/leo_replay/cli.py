@@ -47,6 +47,11 @@ from .orbit import (
     create_source_manifest,
     load_catalog,
     load_visibility_rows,
+    SelectionPolicy,
+    build_observation_times,
+    load_historical_elements,
+    save_selection_document,
+    select_historical_elements,
     verify_snapshot,
     write_visibility_csv,
 )
@@ -269,6 +274,42 @@ def build_parser() -> argparse.ArgumentParser:
         "verify-snapshot", help="Verify snapshot hashes, files, and record counts"
     )
     verify_orbit_snapshot.add_argument("--input-dir", required=True, type=Path)
+
+    select_elements = orbit_sub.add_parser(
+        "select-elements",
+        help="Select causal and/or retrospective elements from historical OMM records",
+    )
+    select_elements.add_argument(
+        "--input", required=True, type=Path,
+        help="OMM JSON/CSV file or verified orbit snapshot directory",
+    )
+    select_elements.add_argument(
+        "--mode", choices=["causal", "retrospective", "compare"], default="compare"
+    )
+    select_elements.add_argument(
+        "--time", action="append", default=[], help="Observation UTC timestamp; repeatable"
+    )
+    select_elements.add_argument("--start", help="UTC start for a generated observation range")
+    select_elements.add_argument("--duration-sec", type=float)
+    select_elements.add_argument("--step-sec", type=float)
+    select_elements.add_argument(
+        "--satellite", action="append", default=[],
+        help="Name, NORAD ID, or object ID; repeatable",
+    )
+    select_elements.add_argument(
+        "--availability-lag-sec", type=float, default=0.0,
+        help="Delay after CREATION_DATE before an element is considered causally available",
+    )
+    select_elements.add_argument("--stale-after-days", type=float, default=14.0)
+    select_elements.add_argument("--position-warning-km", type=float, default=10.0)
+    select_elements.add_argument(
+        "--missing-creation-date-policy", choices=["exclude", "error"], default="exclude"
+    )
+    select_elements.add_argument(
+        "--include-element-fields", action="store_true",
+        help="Embed complete selected OMM records; increases output size substantially",
+    )
+    select_elements.add_argument("--output", required=True, type=Path)
 
     annotate = orbit_sub.add_parser("annotate-events", help="Attach visibility candidates to relative event windows")
     annotate.add_argument("--events", required=True, type=Path)
@@ -613,6 +654,42 @@ def verify_orbit_snapshot_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def select_orbit_elements_command(args: argparse.Namespace) -> int:
+    collection = load_historical_elements(args.input).select(args.satellite)
+    observation_times = build_observation_times(
+        times=args.time,
+        start=args.start,
+        duration_sec=args.duration_sec,
+        step_sec=args.step_sec,
+    )
+    policy = SelectionPolicy(
+        mode=args.mode,
+        availability_lag_sec=args.availability_lag_sec,
+        stale_after_days=args.stale_after_days,
+        position_warning_km=args.position_warning_km,
+        missing_creation_date_policy=args.missing_creation_date_policy,
+        include_element_fields=args.include_element_fields,
+    )
+    document = select_historical_elements(collection, observation_times, policy)
+    save_selection_document(args.output, document)
+    print(
+        json.dumps(
+            {
+                "status": "pass",
+                "mode": args.mode,
+                "output": str(args.output),
+                "observations": document["summary"]["observation_count"],
+                "satellites": document["summary"]["satellite_count"],
+                "causal_selected": document["summary"]["causal_selected"],
+                "retrospective_selected": document["summary"]["retrospective_selected"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0
+
+
 def import_orbit_source(args: argparse.Namespace) -> int:
     catalog = load_catalog(args.input, args.format)
     manifest = create_source_manifest(
@@ -695,6 +772,8 @@ def main(argv: list[str] | None = None) -> int:
             return fetch_orbit_snapshot(args)
         if args.command == "orbit" and args.orbit_command == "verify-snapshot":
             return verify_orbit_snapshot_command(args)
+        if args.command == "orbit" and args.orbit_command == "select-elements":
+            return select_orbit_elements_command(args)
         if args.command == "orbit" and args.orbit_command == "import":
             return import_orbit_source(args)
         if args.command == "orbit" and args.orbit_command == "visibility":

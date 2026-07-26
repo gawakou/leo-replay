@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.2 - 2026-07-26
+
+- Added causal historical-element selection using `CREATION_DATE` availability cutoffs.
+- Added retrospective selection using minimum absolute `EPOCH` distance.
+- Added configurable acquisition/ingestion availability lag.
+- Added explicit handling for missing `CREATION_DATE` values.
+- Added SGP4 propagation comparisons and WGS84 sub-satellite coordinates.
+- Added bracketing-element position sensitivity indicators and warning flags.
+- Added verified snapshot-directory input, output schema, fixture, documentation, and tests.
+- Prepared map-ready causal/retrospective position records without claiming the serving satellite.
+
 ## 0.4.1 - 2026-07-26
 
 - Added reproducible CelesTrak current-GP snapshot acquisition.
