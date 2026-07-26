@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.1 - 2026-07-26
+
+- Added reproducible CelesTrak current-GP snapshot acquisition.
+- Added authenticated Space-Track GP and GP_History acquisition.
+- Added bounded NORAD-ID batching and merged OMM/TLE output.
+- Added immutable request, raw response, response-header, hash, and record-count manifests.
+- Added snapshot verification and offline reuse.
+- Enforced CelesTrak's two-hour update interval for replacing matching snapshots.
+- Kept Space-Track credentials out of all serialized outputs.
+- Added schemas, examples, documentation, and offline acquisition tests.
+
 ## 0.4.0 - 2026-07-18
 
 - Added offline OMM JSON, OMM CSV, and legacy TLE orbit-element loaders.

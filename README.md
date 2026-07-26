@@ -2,12 +2,17 @@
 
 Starlinkを含む低軌道衛星（LEO）通信の**実測データに基づく通信挙動再現基盤**です。ping、iperf3、端末状態ログを時系列またはイベントプロファイルへ変換し、Linuxルータ上の `tc` / `netem` で再生して、同一条件下で通信方式を比較評価します。
 
-現在のリリースは **v0.4.0** です。v0.3.1までの双方向再現・仮想テストベッドに加え、OMM JSON／CSVおよびTLEを読み込み、観測地点からの可視衛星候補、仰角・方位角・斜距離、軌道要素epoch距離を計算し、通信イベントへ軌道コンテキストを付与できるようになりました。
+現在のリリースは **v0.4.1** です。v0.4.0の軌道コンテキストに加え、CelesTrakおよびSpace-Trackから軌道要素を取得し、要求条件、rawレスポンス、SHA-256、HTTPヘッダ、結合済みOMM/TLEを再検証可能なスナップショットとして固定できます。
 
 > 研究用プロトタイプです。共同研究者・所属機関との確認が済むまではPrivate repositoryでの運用を推奨します。
 
-## v0.4.0の主な機能
+## v0.4.1の主な機能
 
+- CelesTrakのCATNR／INTDES／GROUP／NAME／SPECIALによる現在GP取得
+- Space-TrackのGP／GP_History取得と環境変数による認証
+- NORAD IDリストの分割取得とrawレスポンス保持
+- request fingerprint、SHA-256、record countによるスナップショット検証
+- CelesTrakの2時間更新間隔を考慮した再利用・更新制御
 - OMM JSON／CSVおよび従来TLEのオフライン読込み
 - 軌道入力ファイルのSHA-256、取得時刻、要素epoch範囲を記録するprovenance manifest
 - 観測地点からの仰角・方位角・斜距離と可視候補CSVの生成
@@ -53,8 +58,22 @@ leo-replay --version
 期待値：
 
 ```text
-leo-replay 0.4.0
+leo-replay 0.4.1
 ```
+
+## 軌道スナップショット取得
+
+```bash
+leo-replay orbit fetch celestrak \
+  --group STARLINK \
+  --format json \
+  --output-dir orbit-snapshots/celestrak-starlink
+
+leo-replay orbit verify-snapshot \
+  --input-dir orbit-snapshots/celestrak-starlink
+```
+
+Space-Trackでは認証情報を環境変数から読み込み、`gp_history`をNORAD ID単位で分割取得できます。認証情報は保存されません。詳細は [docs/ORBIT_ACQUISITION.md](docs/ORBIT_ACQUISITION.md) を参照してください。
 
 ## 軌道コンテキストの最小例
 
@@ -214,7 +233,7 @@ docs/                   設計、利用手順、研究継続性
 - forward/reverseのNIC対応はルータの物理配線に依存します。実験前に`tcpdump -i <dev>`等で確認してください。
 - 2方向の`tc`コマンドは逐次適用されるため、短時間イベントでは方向間に適用時刻差が生じます。`execution-log`で確認してください。
 - Docker Desktopは機能確認向けであり、短時間イベントの最終精度はネイティブUbuntuまたは実ルータで評価してください。
-- Starlink実測データ計測プログラム本体、オンライン軌道データ取得、実接続衛星の同定、経路切替は未収録です。
+- Starlink実測データ計測プログラム本体、実接続衛星の同定、経路切替は未収録です。
 
 詳細は [docs/BIDIRECTIONAL_REPLAY.md](docs/BIDIRECTIONAL_REPLAY.md) と [docs/USAGE.md](docs/USAGE.md) を参照してください。
 

@@ -42,9 +42,12 @@ from .orbit import (
     OrbitDataError,
     annotate_event_document,
     compute_visibility,
+    fetch_celestrak_snapshot,
+    fetch_space_track_snapshot,
     create_source_manifest,
     load_catalog,
     load_visibility_rows,
+    verify_snapshot,
     write_visibility_csv,
 )
 from .orbit.models import sha256_file
@@ -219,6 +222,53 @@ def build_parser() -> argparse.ArgumentParser:
     visibility.add_argument("--all-satellites", action="store_true", help="Include rows below the elevation threshold")
     visibility.add_argument("--output", required=True, type=Path)
     visibility.add_argument("--metadata-output", type=Path)
+
+    fetch = orbit_sub.add_parser("fetch", help="Acquire immutable orbit-data snapshots")
+    fetch_sub = fetch.add_subparsers(dest="orbit_fetch_source", required=True)
+
+    celestrak = fetch_sub.add_parser("celestrak", help="Fetch current CelesTrak GP data")
+    celestrak_query = celestrak.add_mutually_exclusive_group(required=True)
+    celestrak_query.add_argument("--catnr", help="NORAD catalog number")
+    celestrak_query.add_argument("--intdes", help="International designator, such as 2024-149")
+    celestrak_query.add_argument("--group", help="CelesTrak group, such as STARLINK")
+    celestrak_query.add_argument("--name", help="Satellite name search")
+    celestrak_query.add_argument("--special", help="CelesTrak special data set")
+    celestrak.add_argument("--format", choices=["json", "csv", "tle"], default="json")
+    celestrak.add_argument("--output-dir", required=True, type=Path)
+    celestrak.add_argument("--force", action="store_true", help="Replace an existing snapshot")
+    celestrak.add_argument(
+        "--override-refresh-policy",
+        action="store_true",
+        help="Allow an explicit refresh inside CelesTrak's 2-hour update interval",
+    )
+    celestrak.add_argument("--timeout-sec", type=float, default=30.0)
+    celestrak.add_argument(
+        "--base-url",
+        default="https://celestrak.org/NORAD/elements/gp.php",
+        help=argparse.SUPPRESS,
+    )
+
+    space_track = fetch_sub.add_parser("space-track", help="Fetch Space-Track GP or GP_History data")
+    space_track.add_argument("--class", dest="query_class", choices=["gp", "gp_history"], required=True)
+    space_track.add_argument("--norad-id", action="append", default=[], help="NORAD catalog ID; repeatable")
+    space_track.add_argument("--norad-id-file", type=Path, help="Text file containing NORAD catalog IDs")
+    space_track.add_argument("--start", help="Element epoch range start for gp_history")
+    space_track.add_argument("--stop", help="Element epoch range stop for gp_history")
+    space_track.add_argument("--format", choices=["json", "csv", "tle"], default="json")
+    space_track.add_argument("--batch-size", type=int, default=100)
+    space_track.add_argument("--identity-env", default="SPACETRACK_IDENTITY")
+    space_track.add_argument("--password-env", default="SPACETRACK_PASSWORD")
+    space_track.add_argument("--output-dir", required=True, type=Path)
+    space_track.add_argument("--force", action="store_true", help="Replace an existing snapshot")
+    space_track.add_argument("--timeout-sec", type=float, default=60.0)
+    space_track.add_argument(
+        "--base-url", default="https://www.space-track.org", help=argparse.SUPPRESS
+    )
+
+    verify_orbit_snapshot = orbit_sub.add_parser(
+        "verify-snapshot", help="Verify snapshot hashes, files, and record counts"
+    )
+    verify_orbit_snapshot.add_argument("--input-dir", required=True, type=Path)
 
     annotate = orbit_sub.add_parser("annotate-events", help="Attach visibility candidates to relative event windows")
     annotate.add_argument("--events", required=True, type=Path)
@@ -507,6 +557,62 @@ def evaluate_event_profiles(args: argparse.Namespace) -> int:
     return 0
 
 
+def _celestrak_query(args: argparse.Namespace) -> tuple[str, str]:
+    for name in ("catnr", "intdes", "group", "name", "special"):
+        value = getattr(args, name, None)
+        if value is not None:
+            return name, value
+    raise ValueError("one CelesTrak query selector is required")
+
+
+def fetch_orbit_snapshot(args: argparse.Namespace) -> int:
+    if args.orbit_fetch_source == "celestrak":
+        query_type, query_value = _celestrak_query(args)
+        result = fetch_celestrak_snapshot(
+            output_dir=args.output_dir,
+            query_type=query_type,
+            query_value=query_value,
+            output_format=args.format,
+            force=args.force,
+            override_refresh_policy=args.override_refresh_policy,
+            timeout_sec=args.timeout_sec,
+            base_url=args.base_url,
+        )
+    elif args.orbit_fetch_source == "space-track":
+        result = fetch_space_track_snapshot(
+            output_dir=args.output_dir,
+            query_class=args.query_class,
+            norad_ids=args.norad_id,
+            norad_id_file=args.norad_id_file,
+            output_format=args.format,
+            start=args.start,
+            stop=args.stop,
+            batch_size=args.batch_size,
+            identity_env=args.identity_env,
+            password_env=args.password_env,
+            force=args.force,
+            timeout_sec=args.timeout_sec,
+            base_url=args.base_url,
+        )
+    else:
+        raise ValueError(f"unsupported orbit fetch source: {args.orbit_fetch_source}")
+    print(json.dumps({
+        "status": "reused" if result.reused else "fetched",
+        "provider": result.manifest.get("provider"),
+        "records": result.manifest.get("record_count"),
+        "parts": result.manifest.get("part_count"),
+        "snapshot_dir": str(result.output_dir),
+        "orbit_file": str(result.output_dir / result.manifest["combined_body_file"]),
+    }, ensure_ascii=False, indent=2))
+    return 0
+
+
+def verify_orbit_snapshot_command(args: argparse.Namespace) -> int:
+    result = verify_snapshot(args.input_dir)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def import_orbit_source(args: argparse.Namespace) -> int:
     catalog = load_catalog(args.input, args.format)
     manifest = create_source_manifest(
@@ -585,6 +691,10 @@ def main(argv: list[str] | None = None) -> int:
             return validate_profile(args)
         if args.command == "evaluate" and args.evaluate_command == "events":
             return evaluate_event_profiles(args)
+        if args.command == "orbit" and args.orbit_command == "fetch":
+            return fetch_orbit_snapshot(args)
+        if args.command == "orbit" and args.orbit_command == "verify-snapshot":
+            return verify_orbit_snapshot_command(args)
         if args.command == "orbit" and args.orbit_command == "import":
             return import_orbit_source(args)
         if args.command == "orbit" and args.orbit_command == "visibility":

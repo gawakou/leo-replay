@@ -126,3 +126,16 @@ v0.4.0 adds four schema-controlled JSON document types and one CSV output:
 - Visibility CSV: columns documented in `docs/ORBIT_CONTEXT.md`
 
 The original OMM/TLE file remains an immutable input. The source manifest stores its SHA-256 and epoch range. Visibility output is derived and event annotations are stored separately from Event Profile v1.
+
+
+## Orbit Snapshot Manifest v1 (v0.4.1)
+
+Schema: `schemas/orbit-snapshot-v1.schema.json`. A snapshot directory contains:
+
+- `request.json`: provider, query class/selectors, IDs, epoch interval, format, and query URLs without credentials.
+- `raw/part-NNNN.*`: unmodified response bodies.
+- `raw/part-NNNN.headers.json`: response headers.
+- `orbit.json`, `orbit.csv`, or `orbit.tle`: merged input for the v0.4.0 orbit layer.
+- `manifest.json`: request fingerprint, provider, retrieval time, part hashes, combined hash, bytes, and record counts.
+
+Space-Track credential values are never included. Causal/retrospective element selection is not encoded in this schema.

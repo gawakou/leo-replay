@@ -10,6 +10,7 @@ def test_orbit_schemas_and_examples_are_valid_json():
         ROOT / "schemas/orbit-source-v1.schema.json",
         ROOT / "schemas/visibility-profile-v1.schema.json",
         ROOT / "schemas/event-orbit-annotation-v1.schema.json",
+        ROOT / "schemas/orbit-snapshot-v1.schema.json",
         ROOT / "examples/orbit/observer-hiroshima.example.json",
         ROOT / "examples/orbit/iss-omm.example.json",
     ]
@@ -20,3 +21,5 @@ def test_orbit_schemas_and_examples_are_valid_json():
 def test_orbit_documentation_exists():
     assert (ROOT / "docs/ORBIT_CONTEXT.md").is_file()
     assert (ROOT / "docs/V0.4.0_IMPLEMENTATION.md").is_file()
+    assert (ROOT / "docs/ORBIT_ACQUISITION.md").is_file()
+    assert (ROOT / "docs/V0.4.1_IMPLEMENTATION.md").is_file()
