@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from leo_replay.lab_metrics import parse_execution_log, parse_iperf_mbps, parse_ping
 
 
@@ -46,9 +48,9 @@ def test_parse_execution_log(tmp_path: Path):
     overall = result["lateness_ms"]
     assert overall["sample_count"] == 4
     assert overall["mean_ms"] == -0.5
-    assert overall["p50_absolute_ms"] == 2.5
-    assert overall["p95_absolute_ms"] == 3.8499999999999996
-    assert overall["p99_absolute_ms"] == 3.9699999999999998
+    assert overall["p50_absolute_ms"] == pytest.approx(2.5)
+    assert overall["p95_absolute_ms"] == pytest.approx(3.85)
+    assert overall["p99_absolute_ms"] == pytest.approx(3.97)
 
     forward = result["lateness_by_direction_ms"]["forward"]
     reverse = result["lateness_by_direction_ms"]["reverse"]
