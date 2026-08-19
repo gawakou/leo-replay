@@ -11,10 +11,27 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
-def _write_execution(path: Path, values: list[tuple[str, float]]) -> None:
+def _write_execution(path: Path, run: int) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    lines = [json.dumps({"direction": direction, "lateness_ms": lateness}) for direction, lateness in values]
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    records = [
+        {
+            "action": "timeseries_state",
+            "event_id": None,
+            "direction": "forward",
+            "planned_sec": 0.0,
+            "applied_sec": 0.001 * run,
+            "lateness_ms": 1.0 * run,
+        },
+        {
+            "action": "timeseries_state",
+            "event_id": None,
+            "direction": "reverse",
+            "planned_sec": 0.0,
+            "applied_sec": 0.003 * run,
+            "lateness_ms": 3.0 * run,
+        },
+    ]
+    path.write_text("\n".join(json.dumps(record) for record in records) + "\n", encoding="utf-8")
 
 
 def test_summarize_repeated_lab_artifacts(tmp_path: Path) -> None:
@@ -34,10 +51,7 @@ def test_summarize_repeated_lab_artifacts(tmp_path: Path) -> None:
                 "configured_reverse_rate_mbps": 60.0,
             },
         )
-        _write_execution(
-            run_dir / "profile-execution.jsonl",
-            [("forward", 1.0 * run), ("reverse", -2.0 * run)],
-        )
+        _write_execution(run_dir / "profile-execution.jsonl", run)
 
     result = summarize(tmp_path)
 
@@ -47,7 +61,10 @@ def test_summarize_repeated_lab_artifacts(tmp_path: Path) -> None:
     assert result["fixed"]["forward_realization_ratio"]["mean"] == 0.925
     assert result["fixed"]["reverse_realization_ratio"]["mean"] == 0.925
     assert result["fixed"]["reverse_forward_ratio"]["mean"] == 3.0
+    assert result["execution"]["signed_lateness_ms"]["mean"] == 3.0
     assert result["execution"]["absolute_lateness_ms"]["count"] == 4
-    assert result["execution"]["absolute_lateness_ms"]["maximum"] == 4.0
+    assert result["execution"]["absolute_lateness_ms"]["maximum"] == 6.0
     assert result["execution"]["forward_absolute_lateness_ms"]["mean"] == 1.5
-    assert result["execution"]["reverse_absolute_lateness_ms"]["mean"] == 3.0
+    assert result["execution"]["reverse_absolute_lateness_ms"]["mean"] == 4.5
+    assert result["execution"]["forward_reverse_skew_ms"]["count"] == 2
+    assert result["execution"]["forward_reverse_skew_ms"]["mean"] == 3.0
