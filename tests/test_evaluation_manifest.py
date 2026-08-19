@@ -35,3 +35,25 @@ def test_evaluation_manifest_detects_untracked_file(tmp_path: Path) -> None:
     (tmp_path / "late-note.txt").write_text("changed after collection\n", encoding="utf-8")
 
     assert verify_evaluation_manifest(tmp_path) == ["untracked file: late-note.txt"]
+
+
+def test_evaluation_manifest_rejects_path_escape(tmp_path: Path) -> None:
+    outside = tmp_path.parent / "outside.txt"
+    outside.write_text("must not be trusted\n", encoding="utf-8")
+    (tmp_path / "summary.json").write_text("{}\n", encoding="utf-8")
+    manifest = create_evaluation_manifest(tmp_path)
+    manifest["files"][0]["path"] = "../outside.txt"
+    (tmp_path / MANIFEST_NAME).write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+
+    errors = verify_evaluation_manifest(tmp_path)
+    assert "unsafe manifest path: ../outside.txt" in errors
+    assert "untracked file: summary.json" in errors
+
+
+def test_evaluation_manifest_rejects_duplicate_paths(tmp_path: Path) -> None:
+    (tmp_path / "summary.json").write_text("{}\n", encoding="utf-8")
+    manifest = create_evaluation_manifest(tmp_path)
+    manifest["files"].append(dict(manifest["files"][0]))
+    (tmp_path / MANIFEST_NAME).write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+
+    assert verify_evaluation_manifest(tmp_path) == ["duplicate manifest path: summary.json"]

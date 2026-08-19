@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Iterable
 
 
@@ -52,6 +52,13 @@ def create_evaluation_manifest(root: Path) -> dict[str, object]:
     return manifest
 
 
+def _safe_manifest_path(relative: str) -> bool:
+    if not relative or "\\" in relative:
+        return False
+    path = PurePosixPath(relative)
+    return not path.is_absolute() and path.as_posix() == relative and ".." not in path.parts and "." not in path.parts
+
+
 def verify_evaluation_manifest(root: Path) -> list[str]:
     root = root.resolve()
     manifest_path = root / MANIFEST_NAME
@@ -78,6 +85,12 @@ def verify_evaluation_manifest(root: Path) -> list[str]:
         expected_size = entry.get("size_bytes")
         if not isinstance(relative, str) or not isinstance(expected_hash, str):
             errors.append("manifest file entry is missing path or sha256")
+            continue
+        if not _safe_manifest_path(relative):
+            errors.append(f"unsafe manifest path: {relative}")
+            continue
+        if relative in expected_paths:
+            errors.append(f"duplicate manifest path: {relative}")
             continue
         expected_paths.add(relative)
         path = root / relative
