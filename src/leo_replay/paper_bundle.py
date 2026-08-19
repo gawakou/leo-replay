@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -102,6 +103,37 @@ def _load_object(path: Path) -> dict[str, Any]:
     return document
 
 
+def _sha256_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def build_provenance_manifest(
+    lab_path: Path,
+    event_path: Path,
+    orbit_path: Path,
+    output_path: Path,
+    output_payload: str,
+) -> dict[str, Any]:
+    """Describe the exact summary inputs and generated macro payload used for a paper result."""
+    inputs: dict[str, dict[str, str]] = {}
+    for name, path in (("lab", lab_path), ("event", event_path), ("orbit", orbit_path)):
+        try:
+            digest = _sha256_bytes(path.read_bytes())
+        except OSError as exc:
+            raise PaperBundleError(f"cannot hash {path}: {exc}") from exc
+        inputs[name] = {"filename": path.name, "sha256": digest}
+
+    return {
+        "summary_type": "paper_bundle_provenance",
+        "schema_version": 1,
+        "inputs": inputs,
+        "output": {
+            "filename": output_path.name,
+            "sha256": _sha256_bytes(output_payload.encode("utf-8")),
+        },
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Render one VTCA LaTeX macro file from lab, event, and orbit summaries."
@@ -110,6 +142,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--event", required=True, type=Path, help="repeated event replay summary JSON")
     parser.add_argument("--orbit", required=True, type=Path, help="repeated orbit context summary JSON")
     parser.add_argument("--output", required=True, type=Path, help="output LaTeX macro file")
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        help="optional provenance JSON containing SHA-256 hashes of all inputs and the generated macro file",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -118,11 +155,19 @@ def main(argv: list[str] | None = None) -> int:
             _load_object(args.event),
             _load_object(args.orbit),
         )
+        manifest = (
+            build_provenance_manifest(args.lab, args.event, args.orbit, args.output, payload)
+            if args.manifest is not None
+            else None
+        )
     except PaperBundleError as exc:
         parser.error(str(exc))
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(payload, encoding="utf-8")
+    if args.manifest is not None and manifest is not None:
+        args.manifest.parent.mkdir(parents=True, exist_ok=True)
+        args.manifest.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0
 
 
