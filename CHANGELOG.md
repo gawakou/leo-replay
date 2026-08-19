@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.3 - 2026-07-26
+
+- Added a synchronized 2D satellite-subpoint map and communication timeline.
+- Added side-by-side causal and retrospective position markers and trails.
+- Added timeline playback, event overlays, communication metrics, and satellite details.
+- Added optional visibility joining by timestamp and NORAD catalog ID.
+- Added a self-contained offline HTML bundle with no external network requests.
+- Added loopback-by-default local serving with explicit remote-bind opt-in.
+- Added bundle source hashes, output manifests, schema, examples, documentation, and tests.
+- Embedded a simplified public-domain Natural Earth land outline for offline geographic context.
+
 ## 0.4.2 - 2026-07-26
 
 - Added causal historical-element selection using `CREATION_DATE` availability cutoffs.

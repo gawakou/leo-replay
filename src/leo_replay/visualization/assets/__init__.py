@@ -1,0 +1,1 @@
+"""Packaged offline visualization assets."""

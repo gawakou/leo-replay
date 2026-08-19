@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "profile_type": "event",
+  "metadata": {
+    "created_at": "2026-07-26T00:00:00Z",
+    "generator": "leo-replay v0.4.3 visualization example",
+    "time_reference": "relative"
+  },
+  "baseline": {
+    "rate_mbit": 100.0,
+    "delay_ms": 15.0,
+    "jitter_ms": 1.0,
+    "loss_pct": 0.0
+  },
+  "events": [
+    {
+      "event_id": "VIZ-EV-0001",
+      "event_type": "handover_suspected",
+      "start_sec": 55.0,
+      "end_sec": 95.0,
+      "duration_sec": 40.0,
+      "severity": 3,
+      "confidence": 0.78,
+      "source_type": "SYNTHETIC",
+      "parameters": {
+        "rate_mbit": 12.0,
+        "delay_ms": 70.0,
+        "jitter_ms": 8.0,
+        "loss_pct": 6.0,
+        "spike_ms": 0.0
+      },
+      "observations": {
+        "bins": 4,
+        "avg_rate_mbps": 28.5,
+        "max_loss_pct": 6.0,
+        "avg_delay_ms": 56.0,
+        "avg_ping_rtt_ms": 112.0,
+        "max_ping_timeout_ratio": 0.1,
+        "dominant_grpc_state": "CONNECTED",
+        "avg_pop_ping_latency_ms": 45.0,
+        "max_fraction_obstructed": 0.0
+      },
+      "calibration": {}
+    }
+  ]
+}

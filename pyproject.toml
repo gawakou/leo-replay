@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "leo-replay"
-version = "0.4.2"
+version = "0.4.3"
 description = "Measurement-driven replay framework for LEO communication behavior"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -27,3 +27,5 @@ addopts = "-ra"
 [tool.ruff]
 target-version = "py310"
 line-length = 100
+[tool.setuptools.package-data]
+"leo_replay.visualization" = ["assets/*"]

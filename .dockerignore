@@ -8,6 +8,8 @@ venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
+build/
+dist/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -29,6 +31,7 @@ raw/
 measure_*/
 replay_measure/
 orbit-snapshots/
+visualization-bundles/
 *.pcap
 *.pcapng
 

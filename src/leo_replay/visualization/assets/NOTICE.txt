@@ -1,0 +1,2 @@
+The simplified world land outline is derived from Natural Earth low-resolution data.
+Natural Earth data is in the public domain. Geometry was simplified for offline display.
