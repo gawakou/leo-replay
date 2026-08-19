@@ -1,8 +1,16 @@
 from __future__ import annotations
 
+import hashlib
+import json
+from pathlib import Path
+
 import pytest
 
-from leo_replay.paper_bundle import PaperBundleError, render_paper_bundle_macros
+from leo_replay.paper_bundle import (
+    PaperBundleError,
+    build_provenance_manifest,
+    render_paper_bundle_macros,
+)
 
 
 def _lab_summary() -> dict[str, object]:
@@ -74,3 +82,29 @@ def test_render_paper_bundle_rejects_missing_metric() -> None:
 
     with pytest.raises(PaperBundleError, match="candidate_set_changed_ratio"):
         render_paper_bundle_macros(_lab_summary(), _event_summary(), orbit)
+
+
+def _write_json(path: Path, document: dict[str, object]) -> None:
+    path.write_text(json.dumps(document, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def test_build_provenance_manifest_hashes_exact_inputs_and_output(tmp_path: Path) -> None:
+    lab_path = tmp_path / "lab.json"
+    event_path = tmp_path / "event.json"
+    orbit_path = tmp_path / "orbit.json"
+    output_path = tmp_path / "paper-metrics.tex"
+    _write_json(lab_path, _lab_summary())
+    _write_json(event_path, _event_summary())
+    _write_json(orbit_path, _orbit_summary())
+    payload = render_paper_bundle_macros(_lab_summary(), _event_summary(), _orbit_summary())
+
+    manifest = build_provenance_manifest(lab_path, event_path, orbit_path, output_path, payload)
+
+    assert manifest["summary_type"] == "paper_bundle_provenance"
+    assert manifest["schema_version"] == 1
+    assert manifest["inputs"]["lab"]["filename"] == "lab.json"
+    assert manifest["inputs"]["lab"]["sha256"] == hashlib.sha256(lab_path.read_bytes()).hexdigest()
+    assert manifest["inputs"]["event"]["sha256"] == hashlib.sha256(event_path.read_bytes()).hexdigest()
+    assert manifest["inputs"]["orbit"]["sha256"] == hashlib.sha256(orbit_path.read_bytes()).hexdigest()
+    assert manifest["output"]["filename"] == "paper-metrics.tex"
+    assert manifest["output"]["sha256"] == hashlib.sha256(payload.encode("utf-8")).hexdigest()
