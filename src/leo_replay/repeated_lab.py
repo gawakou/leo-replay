@@ -59,8 +59,8 @@ def _load_object(path: Path) -> dict[str, Any]:
     return document
 
 
-def _load_lateness(path: Path) -> list[tuple[str, float]]:
-    values: list[tuple[str, float]] = []
+def _load_execution(path: Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
     for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if not line.strip():
             continue
@@ -75,12 +75,45 @@ def _load_lateness(path: Path) -> list[tuple[str, float]]:
             raise RepeatedLabError(f"unknown direction {direction!r} at {path}:{line_number}")
         try:
             lateness = float(record["lateness_ms"])
+            planned_sec = float(record["planned_sec"])
+            applied_sec = float(record["applied_sec"])
         except (KeyError, TypeError, ValueError) as exc:
-            raise RepeatedLabError(f"invalid lateness_ms at {path}:{line_number}") from exc
-        values.append((direction, lateness))
-    if not values:
+            raise RepeatedLabError(f"invalid timing fields at {path}:{line_number}") from exc
+        records.append(
+            {
+                "direction": direction,
+                "lateness_ms": lateness,
+                "planned_sec": planned_sec,
+                "applied_sec": applied_sec,
+                "action": str(record.get("action", "")),
+                "event_id": record.get("event_id"),
+            }
+        )
+    if not records:
         raise RepeatedLabError(f"execution log is empty: {path}")
-    return values
+    return records
+
+
+def _pair_skews(path: Path, records: list[dict[str, Any]]) -> list[float]:
+    pairs: dict[tuple[str, str, float], dict[str, float]] = {}
+    for record in records:
+        key = (
+            str(record["action"]),
+            "" if record["event_id"] is None else str(record["event_id"]),
+            float(record["planned_sec"]),
+        )
+        direction = str(record["direction"])
+        pair = pairs.setdefault(key, {})
+        if direction in pair:
+            raise RepeatedLabError(f"duplicate {direction} application for {key!r} in {path}")
+        pair[direction] = float(record["applied_sec"])
+
+    skews: list[float] = []
+    for key, pair in pairs.items():
+        if set(pair) != {"forward", "reverse"}:
+            raise RepeatedLabError(f"incomplete forward/reverse application pair {key!r} in {path}")
+        skews.append(abs(pair["reverse"] - pair["forward"]) * 1000.0)
+    return skews
 
 
 def summarize(root: Path) -> dict[str, Any]:
@@ -111,11 +144,18 @@ def summarize(root: Path) -> dict[str, Any]:
         for item in fixed
     ]
 
-    lateness: list[float] = []
+    signed_lateness: list[float] = []
+    absolute_lateness: list[float] = []
     by_direction: dict[str, list[float]] = {"forward": [], "reverse": []}
+    pair_skews: list[float] = []
     for path in execution_paths:
-        for direction, value in _load_lateness(path):
-            lateness.append(abs(value))
+        records = _load_execution(path)
+        pair_skews.extend(_pair_skews(path, records))
+        for record in records:
+            direction = str(record["direction"])
+            value = float(record["lateness_ms"])
+            signed_lateness.append(value)
+            absolute_lateness.append(abs(value))
             by_direction[direction].append(abs(value))
 
     return {
@@ -134,9 +174,11 @@ def summarize(root: Path) -> dict[str, Any]:
             "reverse_forward_ratio": _stats(direction_ratio),
         },
         "execution": {
-            "absolute_lateness_ms": _stats(lateness),
+            "signed_lateness_ms": _stats(signed_lateness),
+            "absolute_lateness_ms": _stats(absolute_lateness),
             "forward_absolute_lateness_ms": _stats(by_direction["forward"]),
             "reverse_absolute_lateness_ms": _stats(by_direction["reverse"]),
+            "forward_reverse_skew_ms": _stats(pair_skews),
         },
     }
 
