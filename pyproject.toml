@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "leo-replay"
-version = "0.4.3"
+version = "0.5.0"
 description = "Measurement-driven replay framework for LEO communication behavior"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -12,6 +12,7 @@ dependencies = ["skyfield>=1.54,<2"]
 
 [project.scripts]
 leo-replay = "leo_replay.cli:main"
+leo-replay-measure = "leo_replay.measure_cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
