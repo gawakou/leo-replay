@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 from pathlib import Path
 from typing import Any
@@ -61,6 +62,35 @@ def parse_iperf_mbps(path: Path) -> float:
     raise LabMetricError(f"iperf3 throughput was not found in {path}")
 
 
+def _percentile(values: list[float], percentile: float) -> float:
+    """Return a linearly interpolated percentile without external dependencies."""
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return ordered[0]
+    rank = (len(ordered) - 1) * percentile
+    lower = math.floor(rank)
+    upper = math.ceil(rank)
+    if lower == upper:
+        return ordered[lower]
+    fraction = rank - lower
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * fraction
+
+
+def _lateness_summary(values: list[float]) -> dict[str, float | int]:
+    absolute = [abs(value) for value in values]
+    return {
+        "sample_count": len(values),
+        "mean_ms": sum(values) / len(values) if values else 0.0,
+        "mean_absolute_ms": sum(absolute) / len(absolute) if absolute else 0.0,
+        "p50_absolute_ms": _percentile(absolute, 0.50),
+        "p95_absolute_ms": _percentile(absolute, 0.95),
+        "p99_absolute_ms": _percentile(absolute, 0.99),
+        "maximum_absolute_ms": max(absolute, default=0.0),
+    }
+
+
 def parse_execution_log(path: Path) -> dict[str, Any]:
     records: list[dict[str, Any]] = []
     for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
@@ -75,13 +105,28 @@ def parse_execution_log(path: Path) -> dict[str, Any]:
         records.append(record)
     if not records:
         raise LabMetricError(f"execution log is empty: {path}")
+
     directions = sorted({str(record.get("direction", "")) for record in records})
-    lateness = [abs(float(record.get("lateness_ms", 0.0))) for record in records]
+    lateness = [float(record.get("lateness_ms", 0.0)) for record in records]
+    overall = _lateness_summary(lateness)
+    by_direction: dict[str, dict[str, float | int]] = {}
+    for direction in directions:
+        direction_values = [
+            float(record.get("lateness_ms", 0.0))
+            for record in records
+            if str(record.get("direction", "")) == direction
+        ]
+        by_direction[direction] = _lateness_summary(direction_values)
+
     return {
         "records": len(records),
         "directions": directions,
-        "maximum_absolute_lateness_ms": max(lateness, default=0.0),
-        "average_absolute_lateness_ms": sum(lateness) / len(lateness) if lateness else 0.0,
+        # Keep the original fields for compatibility with existing lab checks.
+        "maximum_absolute_lateness_ms": overall["maximum_absolute_ms"],
+        "average_absolute_lateness_ms": overall["mean_absolute_ms"],
+        # Paper-oriented distribution metrics for repeated timing evaluation.
+        "lateness_ms": overall,
+        "lateness_by_direction_ms": by_direction,
     }
 
 
