@@ -67,7 +67,11 @@ if [[ "${OUTPUT_ROOT}" != /* ]]; then
 fi
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RESULT_DIR="${OUTPUT_ROOT}/${BACKEND}-${TIMESTAMP}"
-mkdir -p "${RESULT_DIR}"
+mkdir -p "${OUTPUT_ROOT}"
+if ! mkdir "${RESULT_DIR}"; then
+    printf 'evaluation result directory already exists; refusing to mix artifacts: %s\n' "${RESULT_DIR}" >&2
+    exit 2
+fi
 
 if [[ "${BACKEND}" == "docker" ]]; then
     LAB_DIR="${REPOSITORY_ROOT}/labs/docker-bidirectional"
