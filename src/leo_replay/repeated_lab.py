@@ -32,15 +32,29 @@ def _stats(values: Iterable[float]) -> dict[str, float | int]:
         return {
             "count": 0,
             "mean": 0.0,
+            "standard_deviation": 0.0,
+            "mean_ci95_half_width": 0.0,
             "minimum": 0.0,
             "p50": 0.0,
             "p95": 0.0,
             "p99": 0.0,
             "maximum": 0.0,
         }
+
+    mean = sum(sample) / len(sample)
+    if len(sample) > 1:
+        variance = sum((value - mean) ** 2 for value in sample) / (len(sample) - 1)
+        standard_deviation = math.sqrt(variance)
+        mean_ci95_half_width = 1.96 * standard_deviation / math.sqrt(len(sample))
+    else:
+        standard_deviation = 0.0
+        mean_ci95_half_width = 0.0
+
     return {
         "count": len(sample),
-        "mean": sum(sample) / len(sample),
+        "mean": mean,
+        "standard_deviation": standard_deviation,
+        "mean_ci95_half_width": mean_ci95_half_width,
         "minimum": min(sample),
         "p50": _percentile(sample, 0.50),
         "p95": _percentile(sample, 0.95),
