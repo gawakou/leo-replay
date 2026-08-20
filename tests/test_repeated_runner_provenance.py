@@ -55,6 +55,26 @@ def test_repeated_runner_rejects_tracked_worktree_changes(tmp_path: Path, staged
     assert "tracked Git changes detected" in result.stderr
 
 
+def test_repeated_runner_rejects_untracked_runtime_files(tmp_path: Path):
+    repo, _ = _prepare_repo(tmp_path)
+    runtime_file = repo / "src/leo_replay/local_override.py"
+    runtime_file.parent.mkdir(parents=True)
+    runtime_file.write_text("VALUE = 'uncommitted'\n", encoding="utf-8")
+
+    result = subprocess.run(
+        ["bash", str(repo / "experiments/run_repeated_lab.sh"), "--repetitions", "1"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
+
+    assert result.returncode == 2
+    assert "untracked runtime files detected" in result.stderr
+    assert "src/leo_replay/local_override.py" in result.stderr
+    assert "fixed-condition" not in result.stdout
+
+
 def test_repeated_runner_rejects_existing_result_directory(tmp_path: Path):
     repo, _ = _prepare_repo(tmp_path)
     output_root = tmp_path / "results"
