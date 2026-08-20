@@ -54,11 +54,20 @@ if ! [[ "${REPETITIONS}" =~ ^[1-9][0-9]*$ ]]; then
 fi
 
 # Paper-facing runs must correspond to the recorded Git commit. Ignore
-# untracked files so previous evaluation artifacts do not block a rerun, but
-# reject staged or unstaged modifications to tracked source/configuration.
+# unrelated or ignored untracked files so previous evaluation artifacts do not
+# block a rerun, but reject any tracked changes or untracked files in runtime
+# source/script trees that could alter the executed experiment.
 if ! git -C "${REPOSITORY_ROOT}" diff --quiet -- || \
    ! git -C "${REPOSITORY_ROOT}" diff --cached --quiet --; then
     printf 'tracked Git changes detected; commit or revert them before running a paper evaluation\n' >&2
+    exit 2
+fi
+UNTRACKED_RUNTIME_FILES="$(
+    git -C "${REPOSITORY_ROOT}" ls-files --others --exclude-standard -- src experiments labs
+)"
+if [[ -n "${UNTRACKED_RUNTIME_FILES}" ]]; then
+    printf 'untracked runtime files detected; commit, remove, or ignore them before running a paper evaluation:\n%s\n' \
+        "${UNTRACKED_RUNTIME_FILES}" >&2
     exit 2
 fi
 
@@ -97,6 +106,7 @@ trap cleanup EXIT INT TERM
     printf 'repetitions=%s\n' "${REPETITIONS}"
     printf 'git_commit=%s\n' "$(git -C "${REPOSITORY_ROOT}" rev-parse HEAD 2>/dev/null || printf unknown)"
     printf 'git_tracked_worktree_clean=yes\n'
+    printf 'git_runtime_untracked_clean=yes\n'
     printf 'uname=%s\n' "$(uname -a)"
     printf 'python=%s\n' "$(python3 --version 2>&1)"
 } > "${RESULT_DIR}/environment.txt"
