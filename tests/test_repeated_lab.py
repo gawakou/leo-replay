@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from leo_replay.repeated_lab import summarize
+import pytest
+
+from leo_replay.repeated_lab import RepeatedLabError, summarize
 
 
 def _write_json(path: Path, payload: dict[str, object]) -> None:
@@ -68,3 +70,35 @@ def test_summarize_repeated_lab_artifacts(tmp_path: Path) -> None:
     assert result["execution"]["reverse_absolute_lateness_ms"]["mean"] == 4.5
     assert result["execution"]["forward_reverse_skew_ms"]["count"] == 2
     assert result["execution"]["forward_reverse_skew_ms"]["mean"] == 3.0
+
+
+def test_summarize_rejects_unpaired_run_artifacts(tmp_path: Path) -> None:
+    run_one = tmp_path / "run-001"
+    _write_json(
+        run_one / "fixed-summary.json",
+        {
+            "status": "pass",
+            "rtt_delta_ms": 50.0,
+            "forward_throughput_mbps": 18.0,
+            "reverse_throughput_mbps": 54.0,
+            "configured_forward_rate_mbps": 20.0,
+            "configured_reverse_rate_mbps": 60.0,
+        },
+    )
+    _write_execution(run_one / "profile-execution.jsonl", 1)
+
+    run_two = tmp_path / "run-002"
+    _write_json(
+        run_two / "fixed-summary.json",
+        {
+            "status": "pass",
+            "rtt_delta_ms": 52.0,
+            "forward_throughput_mbps": 19.0,
+            "reverse_throughput_mbps": 57.0,
+            "configured_forward_rate_mbps": 20.0,
+            "configured_reverse_rate_mbps": 60.0,
+        },
+    )
+
+    with pytest.raises(RepeatedLabError, match="missing profile-execution.jsonl for run-002"):
+        summarize(tmp_path)

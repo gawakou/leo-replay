@@ -116,6 +116,29 @@ def _pair_skews(path: Path, records: list[dict[str, Any]]) -> list[float]:
     return skews
 
 
+def _validate_paired_runs(
+    root: Path, fixed_paths: list[Path], execution_paths: list[Path]
+) -> None:
+    fixed_runs = {path.parent.relative_to(root) for path in fixed_paths}
+    execution_runs = {path.parent.relative_to(root) for path in execution_paths}
+    missing_execution = sorted(fixed_runs - execution_runs, key=str)
+    missing_fixed = sorted(execution_runs - fixed_runs, key=str)
+    if not missing_execution and not missing_fixed:
+        return
+
+    details: list[str] = []
+    if missing_execution:
+        details.append(
+            "missing profile-execution.jsonl for "
+            + ", ".join(str(path) for path in missing_execution)
+        )
+    if missing_fixed:
+        details.append(
+            "missing fixed-summary.json for " + ", ".join(str(path) for path in missing_fixed)
+        )
+    raise RepeatedLabError("unpaired repeated-lab artifacts: " + "; ".join(details))
+
+
 def summarize(root: Path) -> dict[str, Any]:
     fixed_paths = sorted(root.rglob("fixed-summary.json"))
     execution_paths = sorted(root.rglob("profile-execution.jsonl"))
@@ -123,6 +146,7 @@ def summarize(root: Path) -> dict[str, Any]:
         raise RepeatedLabError(f"no fixed-summary.json files found below {root}")
     if not execution_paths:
         raise RepeatedLabError(f"no profile-execution.jsonl files found below {root}")
+    _validate_paired_runs(root, fixed_paths, execution_paths)
 
     fixed = [_load_object(path) for path in fixed_paths]
     failed_fixed = [path for path, item in zip(fixed_paths, fixed) if item.get("status") != "pass"]
