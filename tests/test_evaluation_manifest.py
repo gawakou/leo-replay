@@ -57,3 +57,20 @@ def test_evaluation_manifest_rejects_duplicate_paths(tmp_path: Path) -> None:
     (tmp_path / MANIFEST_NAME).write_text(json.dumps(manifest) + "\n", encoding="utf-8")
 
     assert verify_evaluation_manifest(tmp_path) == ["duplicate manifest path: summary.json"]
+
+
+def test_evaluation_manifest_rejects_invalid_schema_and_file_metadata(tmp_path: Path) -> None:
+    (tmp_path / "summary.json").write_text("{}\n", encoding="utf-8")
+    manifest = create_evaluation_manifest(tmp_path)
+    manifest["schema_version"] = "9.9"
+    manifest["kind"] = "other-artifacts"
+    manifest["files"][0]["sha256"] = "not-a-sha256"
+    manifest["files"][0]["size_bytes"] = -1
+    (tmp_path / MANIFEST_NAME).write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+
+    assert verify_evaluation_manifest(tmp_path) == [
+        "unsupported manifest schema_version: '9.9'",
+        "unexpected manifest kind: 'other-artifacts'",
+        "invalid sha256: summary.json",
+        "invalid size_bytes: summary.json",
+    ]
