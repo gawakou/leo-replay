@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -60,12 +61,17 @@ def test_summarize_repeated_lab_artifacts(tmp_path: Path) -> None:
     assert result["fixed_runs"] == 2
     assert result["profile_runs"] == 2
     assert result["fixed"]["rtt_delta_ms"]["mean"] == 51.0
+    assert result["fixed"]["rtt_delta_ms"]["standard_deviation"] == pytest.approx(math.sqrt(2.0))
+    assert result["fixed"]["rtt_delta_ms"]["mean_ci95_half_width"] == pytest.approx(1.96)
     assert result["fixed"]["forward_realization_ratio"]["mean"] == 0.925
     assert result["fixed"]["reverse_realization_ratio"]["mean"] == 0.925
     assert result["fixed"]["reverse_forward_ratio"]["mean"] == 3.0
     assert result["execution"]["signed_lateness_ms"]["mean"] == 3.0
     assert result["execution"]["absolute_lateness_ms"]["count"] == 4
     assert result["execution"]["absolute_lateness_ms"]["maximum"] == 6.0
+    assert result["execution"]["absolute_lateness_ms"]["standard_deviation"] == pytest.approx(
+        math.sqrt(14.0 / 3.0)
+    )
     assert result["execution"]["forward_absolute_lateness_ms"]["mean"] == 1.5
     assert result["execution"]["reverse_absolute_lateness_ms"]["mean"] == 4.5
     assert result["execution"]["forward_reverse_skew_ms"]["count"] == 2
