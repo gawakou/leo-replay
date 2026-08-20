@@ -8,6 +8,8 @@ from typing import Iterable
 
 
 MANIFEST_NAME = "evaluation-manifest.json"
+SCHEMA_VERSION = "1.0"
+MANIFEST_KIND = "leo-replay-evaluation-artifacts"
 
 
 def sha256_file(path: Path) -> str:
@@ -41,8 +43,8 @@ def create_evaluation_manifest(root: Path) -> dict[str, object]:
         )
 
     manifest: dict[str, object] = {
-        "schema_version": "1.0",
-        "kind": "leo-replay-evaluation-artifacts",
+        "schema_version": SCHEMA_VERSION,
+        "kind": MANIFEST_KIND,
         "files": files,
     }
     (root / MANIFEST_NAME).write_text(
@@ -59,6 +61,10 @@ def _safe_manifest_path(relative: str) -> bool:
     return not path.is_absolute() and path.as_posix() == relative and ".." not in path.parts and "." not in path.parts
 
 
+def _valid_sha256(value: str) -> bool:
+    return len(value) == 64 and all(character in "0123456789abcdef" for character in value)
+
+
 def verify_evaluation_manifest(root: Path) -> list[str]:
     root = root.resolve()
     manifest_path = root / MANIFEST_NAME
@@ -70,11 +76,17 @@ def verify_evaluation_manifest(root: Path) -> list[str]:
     except (OSError, json.JSONDecodeError) as exc:
         return [f"cannot read {MANIFEST_NAME}: {exc}"]
 
+    errors: list[str] = []
+    if manifest.get("schema_version") != SCHEMA_VERSION:
+        errors.append(f"unsupported manifest schema_version: {manifest.get('schema_version')!r}")
+    if manifest.get("kind") != MANIFEST_KIND:
+        errors.append(f"unexpected manifest kind: {manifest.get('kind')!r}")
+
     entries = manifest.get("files")
     if not isinstance(entries, list):
-        return ["manifest files must be a list"]
+        errors.append("manifest files must be a list")
+        return errors
 
-    errors: list[str] = []
     expected_paths: set[str] = set()
     for entry in entries:
         if not isinstance(entry, dict):
@@ -83,8 +95,8 @@ def verify_evaluation_manifest(root: Path) -> list[str]:
         relative = entry.get("path")
         expected_hash = entry.get("sha256")
         expected_size = entry.get("size_bytes")
-        if not isinstance(relative, str) or not isinstance(expected_hash, str):
-            errors.append("manifest file entry is missing path or sha256")
+        if not isinstance(relative, str):
+            errors.append("manifest file entry is missing path")
             continue
         if not _safe_manifest_path(relative):
             errors.append(f"unsafe manifest path: {relative}")
@@ -93,11 +105,22 @@ def verify_evaluation_manifest(root: Path) -> list[str]:
             errors.append(f"duplicate manifest path: {relative}")
             continue
         expected_paths.add(relative)
+
+        metadata_valid = True
+        if not isinstance(expected_hash, str) or not _valid_sha256(expected_hash):
+            errors.append(f"invalid sha256: {relative}")
+            metadata_valid = False
+        if not isinstance(expected_size, int) or isinstance(expected_size, bool) or expected_size < 0:
+            errors.append(f"invalid size_bytes: {relative}")
+            metadata_valid = False
+        if not metadata_valid:
+            continue
+
         path = root / relative
         if not path.is_file():
             errors.append(f"missing file: {relative}")
             continue
-        if isinstance(expected_size, int) and path.stat().st_size != expected_size:
+        if path.stat().st_size != expected_size:
             errors.append(f"size mismatch: {relative}")
         if sha256_file(path) != expected_hash:
             errors.append(f"sha256 mismatch: {relative}")
