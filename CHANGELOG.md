@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0 - 2026-08-20
+
+- Added active `ping` and `traceroute` measurement capture through the `leo-replay-measure` CLI.
+- Added normalized measurement snapshots with SHA-256 manifests and verification for reproducible reuse.
+- Added repeated VTCA 2026 lab evaluation tooling with 30-run execution support and paired-run completeness checks.
+- Added replay timing distribution metrics, including p50/p95/p99 lateness, signed lateness, forward/reverse breakdowns, and direction application skew.
+- Added repeated-run uncertainty statistics with sample standard deviation and 95% confidence-interval half-widths.
+- Added repeated event-replay fidelity aggregation for detection precision/recall/F1, event timing errors, peak errors, and RTT MAE/RMSE.
+- Added repeated orbit-context aggregation for visible-candidate counts, candidate-set changes, and TLE epoch-distance distributions without inferring the serving satellite.
+- Added paper-oriented LaTeX metric generation, combined paper bundles, and SHA-256 provenance for lab, event-replay, and orbit-context summaries.
+- Added evaluation artifact manifests with immediate self-verification, path-safety checks, metadata/schema validation, and duplicate-entry rejection.
+- Added a VTCA 2026 reproducible evaluation recipe covering smoke runs, 30-run evaluation, manifest verification, summary generation, and paper provenance.
+- Preserved the v0.4.3 synchronized 2D map and communication timeline as the visualization baseline for v0.5.0.
+
 ## 0.4.3 - 2026-07-26
 
 - Added a synchronized 2D satellite-subpoint map and communication timeline.
