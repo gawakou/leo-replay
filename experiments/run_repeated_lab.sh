@@ -110,6 +110,12 @@ PYTHONPATH="${REPOSITORY_ROOT}/src${PYTHONPATH:+:${PYTHONPATH}}" \
     python3 -m leo_replay.evaluation_manifest create "${RESULT_DIR}" \
     > /dev/null
 
+# Fail the evaluation immediately if the just-created reproducibility manifest
+# cannot verify the exact compact artifact set that will be used for the paper.
+PYTHONPATH="${REPOSITORY_ROOT}/src${PYTHONPATH:+:${PYTHONPATH}}" \
+    python3 -m leo_replay.evaluation_manifest verify "${RESULT_DIR}" \
+    > /dev/null
+
 printf 'Evaluation finished: %s\n' "${RESULT_DIR}"
 printf 'Summary: %s\n' "${RESULT_DIR}/summary.json"
-printf 'Integrity manifest: %s\n' "${RESULT_DIR}/evaluation-manifest.json"
+printf 'Integrity manifest: %s (verified)\n' "${RESULT_DIR}/evaluation-manifest.json"
