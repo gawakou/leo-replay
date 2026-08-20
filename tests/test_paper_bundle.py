@@ -18,16 +18,40 @@ def _lab_summary() -> dict[str, object]:
         "fixed_runs": 30,
         "profile_runs": 30,
         "fixed": {
-            "rtt_delta_ms": {"mean": 50.125},
-            "forward_realization_ratio": {"mean": 0.925},
-            "reverse_realization_ratio": {"mean": 0.91},
+            "rtt_delta_ms": {
+                "mean": 50.125,
+                "standard_deviation": 1.25,
+                "mean_ci95_half_width": 0.45,
+            },
+            "forward_realization_ratio": {
+                "mean": 0.925,
+                "standard_deviation": 0.012,
+                "mean_ci95_half_width": 0.004,
+            },
+            "reverse_realization_ratio": {
+                "mean": 0.91,
+                "standard_deviation": 0.015,
+                "mean_ci95_half_width": 0.005,
+            },
             "reverse_forward_ratio": {"mean": 3.0049},
         },
         "execution": {
-            "absolute_lateness_ms": {"mean": 2.345, "p95": 5.678, "p99": 8.901},
+            "absolute_lateness_ms": {
+                "mean": 2.345,
+                "standard_deviation": 0.75,
+                "mean_ci95_half_width": 0.27,
+                "p95": 5.678,
+                "p99": 8.901,
+            },
             "forward_absolute_lateness_ms": {"p95": 4.321},
             "reverse_absolute_lateness_ms": {"p95": 6.543},
-            "forward_reverse_skew_ms": {"mean": 1.234, "p95": 2.345, "p99": 3.456},
+            "forward_reverse_skew_ms": {
+                "mean": 1.234,
+                "standard_deviation": 0.42,
+                "mean_ci95_half_width": 0.15,
+                "p95": 2.345,
+                "p99": 3.456,
+            },
         },
     }
 
@@ -61,6 +85,10 @@ def test_render_paper_bundle_macros() -> None:
     payload = render_paper_bundle_macros(_lab_summary(), _event_summary(), _orbit_summary())
 
     assert "\\newcommand{\\LeoFixedRuns}{30}" in payload
+    assert "\\newcommand{\\LeoRttDeltaSdMs}{1.25}" in payload
+    assert "\\newcommand{\\LeoRttDeltaCi95HalfWidthMs}{0.45}" in payload
+    assert "\\newcommand{\\LeoLatenessCi95HalfWidthMs}{0.27}" in payload
+    assert "\\newcommand{\\LeoDirectionSkewSdMs}{0.42}" in payload
     assert "\\newcommand{\\LeoEventEvaluations}{30}" in payload
     assert "\\newcommand{\\LeoEventFOnePct}{97.5}" in payload
     assert "\\newcommand{\\LeoEventStartErrorP95Sec}{0.123}" in payload

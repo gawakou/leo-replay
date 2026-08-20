@@ -10,16 +10,32 @@ def _summary() -> dict[str, object]:
         "fixed_runs": 30,
         "profile_runs": 30,
         "fixed": {
-            "rtt_delta_ms": {"mean": 50.125},
-            "forward_realization_ratio": {"mean": 0.925},
-            "reverse_realization_ratio": {"mean": 0.91},
+            "rtt_delta_ms": {
+                "mean": 50.125,
+                "standard_deviation": 1.234,
+                "mean_ci95_half_width": 0.441,
+            },
+            "forward_realization_ratio": {"mean": 0.925, "mean_ci95_half_width": 0.0123},
+            "reverse_realization_ratio": {"mean": 0.91, "mean_ci95_half_width": 0.0154},
             "reverse_forward_ratio": {"mean": 3.0049},
         },
         "execution": {
-            "absolute_lateness_ms": {"mean": 2.345, "p95": 5.678, "p99": 8.901},
+            "absolute_lateness_ms": {
+                "mean": 2.345,
+                "standard_deviation": 0.876,
+                "mean_ci95_half_width": 0.313,
+                "p95": 5.678,
+                "p99": 8.901,
+            },
             "forward_absolute_lateness_ms": {"p95": 4.321},
             "reverse_absolute_lateness_ms": {"p95": 6.543},
-            "forward_reverse_skew_ms": {"mean": 1.234, "p95": 2.345, "p99": 3.456},
+            "forward_reverse_skew_ms": {
+                "mean": 1.234,
+                "standard_deviation": 0.456,
+                "mean_ci95_half_width": 0.163,
+                "p95": 2.345,
+                "p99": 3.456,
+            },
         },
     }
 
@@ -29,10 +45,18 @@ def test_render_latex_macros() -> None:
 
     assert "\\newcommand{\\LeoFixedRuns}{30}" in payload
     assert "\\newcommand{\\LeoRttDeltaMeanMs}{50.12}" in payload
+    assert "\\newcommand{\\LeoRttDeltaSdMs}{1.23}" in payload
+    assert "\\newcommand{\\LeoRttDeltaCi95HalfWidthMs}{0.44}" in payload
     assert "\\newcommand{\\LeoForwardRealizationMeanPct}{92.5}" in payload
+    assert "\\newcommand{\\LeoForwardRealizationCi95HalfWidthPct}{1.2}" in payload
     assert "\\newcommand{\\LeoReverseRealizationMeanPct}{91.0}" in payload
+    assert "\\newcommand{\\LeoReverseRealizationCi95HalfWidthPct}{1.5}" in payload
     assert "\\newcommand{\\LeoReverseForwardRatioMean}{3.005}" in payload
+    assert "\\newcommand{\\LeoLatenessSdMs}{0.88}" in payload
+    assert "\\newcommand{\\LeoLatenessCi95HalfWidthMs}{0.31}" in payload
     assert "\\newcommand{\\LeoLatenessP95Ms}{5.68}" in payload
+    assert "\\newcommand{\\LeoDirectionSkewSdMs}{0.46}" in payload
+    assert "\\newcommand{\\LeoDirectionSkewCi95HalfWidthMs}{0.16}" in payload
     assert "\\newcommand{\\LeoDirectionSkewP99Ms}{3.46}" in payload
 
 
