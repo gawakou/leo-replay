@@ -41,12 +41,28 @@ def render_latex_macros(summary: dict[str, Any]) -> str:
             f'{_value(summary, "fixed", "rtt_delta_ms", "mean"):.2f}',
         ),
         (
+            "LeoRttDeltaSdMs",
+            f'{_value(summary, "fixed", "rtt_delta_ms", "standard_deviation"):.2f}',
+        ),
+        (
+            "LeoRttDeltaCi95HalfWidthMs",
+            f'{_value(summary, "fixed", "rtt_delta_ms", "mean_ci95_half_width"):.2f}',
+        ),
+        (
             "LeoForwardRealizationMeanPct",
             f'{100.0 * _value(summary, "fixed", "forward_realization_ratio", "mean"):.1f}',
         ),
         (
+            "LeoForwardRealizationCi95HalfWidthPct",
+            f'{100.0 * _value(summary, "fixed", "forward_realization_ratio", "mean_ci95_half_width"):.1f}',
+        ),
+        (
             "LeoReverseRealizationMeanPct",
             f'{100.0 * _value(summary, "fixed", "reverse_realization_ratio", "mean"):.1f}',
+        ),
+        (
+            "LeoReverseRealizationCi95HalfWidthPct",
+            f'{100.0 * _value(summary, "fixed", "reverse_realization_ratio", "mean_ci95_half_width"):.1f}',
         ),
         (
             "LeoReverseForwardRatioMean",
@@ -55,6 +71,14 @@ def render_latex_macros(summary: dict[str, Any]) -> str:
         (
             "LeoLatenessMeanMs",
             f'{_value(summary, "execution", "absolute_lateness_ms", "mean"):.2f}',
+        ),
+        (
+            "LeoLatenessSdMs",
+            f'{_value(summary, "execution", "absolute_lateness_ms", "standard_deviation"):.2f}',
+        ),
+        (
+            "LeoLatenessCi95HalfWidthMs",
+            f'{_value(summary, "execution", "absolute_lateness_ms", "mean_ci95_half_width"):.2f}',
         ),
         (
             "LeoLatenessP95Ms",
@@ -75,6 +99,14 @@ def render_latex_macros(summary: dict[str, Any]) -> str:
         (
             "LeoDirectionSkewMeanMs",
             f'{_value(summary, "execution", "forward_reverse_skew_ms", "mean"):.2f}',
+        ),
+        (
+            "LeoDirectionSkewSdMs",
+            f'{_value(summary, "execution", "forward_reverse_skew_ms", "standard_deviation"):.2f}',
+        ),
+        (
+            "LeoDirectionSkewCi95HalfWidthMs",
+            f'{_value(summary, "execution", "forward_reverse_skew_ms", "mean_ci95_half_width"):.2f}',
         ),
         (
             "LeoDirectionSkewP95Ms",
