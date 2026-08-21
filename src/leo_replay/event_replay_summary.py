@@ -28,7 +28,7 @@ def _rounded(value: float | None) -> float | None:
 
 
 def _error_stats(values: list[float]) -> dict[str, float | int | None]:
-    absolute = [abs(float(value)) for value in values if math.isfinite(float(value))]
+    absolute = [abs(float(value)) for value in values]
     if not absolute:
         return {
             "count": 0,
@@ -48,31 +48,67 @@ def _error_stats(values: list[float]) -> dict[str, float | int | None]:
     }
 
 
+def _strict_bool(value: Any, *, field: str, event_index: int) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError(f"event {event_index} has invalid {field} {value!r}; expected boolean")
+    return value
+
+
+def _optional_finite_number(value: Any, *, field: str, event_index: int) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"event {event_index} has invalid {field} {value!r}; expected number or null")
+    numeric = float(value)
+    if not math.isfinite(numeric):
+        raise ValueError(f"event {event_index} has non-finite {field} {value!r}")
+    return numeric
+
+
 def summarize_event_documents(documents: Iterable[dict[str, Any]]) -> dict[str, Any]:
     documents = list(documents)
     events: list[dict[str, Any]] = []
-    for document in documents:
+    for document_index, document in enumerate(documents, start=1):
         if document.get("evaluation_type") != "event_replay":
             raise ValueError("all inputs must have evaluation_type='event_replay'")
         rows = document.get("events")
         if not isinstance(rows, list):
             raise ValueError("event replay input must contain an events list")
-        events.extend(row for row in rows if isinstance(row, dict))
+        for row_index, row in enumerate(rows, start=1):
+            if not isinstance(row, dict):
+                raise ValueError(
+                    f"event replay input {document_index} contains non-object event at index {row_index}"
+                )
+            events.append(row)
 
-    reference_detected = sum(bool(row.get("measured", {}).get("detected")) for row in events)
-    replay_detected = sum(bool(row.get("replayed", {}).get("detected")) for row in events)
-    matched = sum(
-        bool(row.get("measured", {}).get("detected")) and bool(row.get("replayed", {}).get("detected"))
-        for row in events
-    )
-    missed = sum(
-        bool(row.get("measured", {}).get("detected")) and not bool(row.get("replayed", {}).get("detected"))
-        for row in events
-    )
-    spurious = sum(
-        not bool(row.get("measured", {}).get("detected")) and bool(row.get("replayed", {}).get("detected"))
-        for row in events
-    )
+    normalized: list[dict[str, Any]] = []
+    for event_index, row in enumerate(events, start=1):
+        measured = row.get("measured")
+        replayed = row.get("replayed")
+        errors = row.get("errors")
+        if not isinstance(measured, dict):
+            raise ValueError(f"event {event_index} must contain a measured object")
+        if not isinstance(replayed, dict):
+            raise ValueError(f"event {event_index} must contain a replayed object")
+        if not isinstance(errors, dict):
+            raise ValueError(f"event {event_index} must contain an errors object")
+        normalized.append(
+            {
+                "measured_detected": _strict_bool(
+                    measured.get("detected"), field="measured.detected", event_index=event_index
+                ),
+                "replayed_detected": _strict_bool(
+                    replayed.get("detected"), field="replayed.detected", event_index=event_index
+                ),
+                "errors": errors,
+            }
+        )
+
+    reference_detected = sum(row["measured_detected"] for row in normalized)
+    replay_detected = sum(row["replayed_detected"] for row in normalized)
+    matched = sum(row["measured_detected"] and row["replayed_detected"] for row in normalized)
+    missed = sum(row["measured_detected"] and not row["replayed_detected"] for row in normalized)
+    spurious = sum(not row["measured_detected"] and row["replayed_detected"] for row in normalized)
 
     precision = matched / replay_detected if replay_detected else None
     recall = matched / reference_detected if reference_detected else None
@@ -94,15 +130,11 @@ def summarize_event_documents(documents: Iterable[dict[str, Any]]) -> dict[str, 
     error_summary: dict[str, Any] = {}
     for key in error_keys:
         values: list[float] = []
-        for row in events:
-            value = row.get("errors", {}).get(key)
-            if value is None:
-                continue
-            try:
-                numeric = float(value)
-            except (TypeError, ValueError):
-                continue
-            if math.isfinite(numeric):
+        for event_index, row in enumerate(normalized, start=1):
+            numeric = _optional_finite_number(
+                row["errors"].get(key), field=f"errors.{key}", event_index=event_index
+            )
+            if numeric is not None:
                 values.append(numeric)
         error_summary[key] = _error_stats(values)
 
