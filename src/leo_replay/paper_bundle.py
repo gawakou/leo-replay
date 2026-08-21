@@ -9,6 +9,9 @@ from typing import Any
 from leo_replay.paper_summary import PaperSummaryError, render_latex_macros
 
 
+DEFAULT_PAPER_REPETITIONS = 30
+
+
 class PaperBundleError(ValueError):
     """Raised when VTCA paper summaries cannot be combined safely."""
 
@@ -38,14 +41,45 @@ def _require_type(document: dict[str, Any], key: str, expected: str) -> None:
         raise PaperBundleError(f"expected {key}={expected!r}, got {actual!r}")
 
 
+def _validate_paper_repetitions(
+    lab_summary: dict[str, Any],
+    event_summary: dict[str, Any],
+    orbit_summary: dict[str, Any],
+    expected_repetitions: int,
+) -> None:
+    if isinstance(expected_repetitions, bool) or not isinstance(expected_repetitions, int):
+        raise PaperBundleError("expected repetitions must be an integer")
+    if expected_repetitions <= 0:
+        raise PaperBundleError("expected repetitions must be positive")
+
+    observed = {
+        "lab fixed runs": _integer(lab_summary, "fixed_runs"),
+        "lab profile runs": _integer(lab_summary, "profile_runs"),
+        "event evaluations": _integer(event_summary, "evaluation_count"),
+        "orbit evaluations": _integer(orbit_summary, "evaluation_count"),
+    }
+    mismatched = [
+        f"{name}={count}" for name, count in observed.items() if count != expected_repetitions
+    ]
+    if mismatched:
+        raise PaperBundleError(
+            f"paper bundle requires exactly {expected_repetitions} repetitions; "
+            + ", ".join(mismatched)
+        )
+
+
 def render_paper_bundle_macros(
     lab_summary: dict[str, Any],
     event_summary: dict[str, Any],
     orbit_summary: dict[str, Any],
+    expected_repetitions: int = DEFAULT_PAPER_REPETITIONS,
 ) -> str:
     """Render one stable macro file spanning all headline VTCA evaluation dimensions."""
     _require_type(event_summary, "summary_type", "repeated_event_replay")
     _require_type(orbit_summary, "summary_type", "repeated_event_orbit_context")
+    _validate_paper_repetitions(
+        lab_summary, event_summary, orbit_summary, expected_repetitions
+    )
 
     try:
         lab_payload = render_latex_macros(lab_summary).rstrip("\n")
@@ -171,6 +205,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--orbit", required=True, type=Path, help="repeated orbit context summary JSON")
     parser.add_argument("--output", required=True, type=Path, help="output LaTeX macro file")
     parser.add_argument(
+        "--expected-repetitions",
+        type=int,
+        default=DEFAULT_PAPER_REPETITIONS,
+        help=(
+            "required repetition count for lab, event, and orbit summaries "
+            f"(default: {DEFAULT_PAPER_REPETITIONS})"
+        ),
+    )
+    parser.add_argument(
         "--manifest",
         type=Path,
         help="optional provenance JSON containing SHA-256 hashes of all inputs and the generated macro file",
@@ -183,6 +226,7 @@ def main(argv: list[str] | None = None) -> int:
             _load_object(args.lab),
             _load_object(args.event),
             _load_object(args.orbit),
+            expected_repetitions=args.expected_repetitions,
         )
         manifest = (
             build_provenance_manifest(args.lab, args.event, args.orbit, args.output, payload)
