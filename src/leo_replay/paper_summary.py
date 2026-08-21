@@ -32,14 +32,23 @@ def _integer(summary: dict[str, Any], key: str) -> int:
     value = summary[key]
     if isinstance(value, bool) or not isinstance(value, int):
         raise PaperSummaryError(f"non-integer summary field: {key}")
+    if value <= 0:
+        raise PaperSummaryError(f"non-positive summary field: {key}")
     return value
 
 
 def render_latex_macros(summary: dict[str, Any]) -> str:
     """Render stable LaTeX macros for the headline VTCA evaluation metrics."""
+    fixed_runs = _integer(summary, "fixed_runs")
+    profile_runs = _integer(summary, "profile_runs")
+    if fixed_runs != profile_runs:
+        raise PaperSummaryError(
+            f"mismatched repeated-lab run counts: fixed_runs={fixed_runs}, profile_runs={profile_runs}"
+        )
+
     values: list[tuple[str, str]] = [
-        ("LeoFixedRuns", str(_integer(summary, "fixed_runs"))),
-        ("LeoProfileRuns", str(_integer(summary, "profile_runs"))),
+        ("LeoFixedRuns", str(fixed_runs)),
+        ("LeoProfileRuns", str(profile_runs)),
         (
             "LeoRttDeltaMeanMs",
             f'{_value(summary, "fixed", "rtt_delta_ms", "mean"):.2f}',
