@@ -41,33 +41,59 @@ def _stats(values: list[float]) -> dict[str, float | int | None]:
     }
 
 
+def _validated_annotation(row: Any, index: int) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        raise ValueError(f"orbit context annotation {index} must be an object")
+
+    changed = row.get("candidate_set_changed")
+    if type(changed) is not bool:
+        raise ValueError(f"orbit context annotation {index} candidate_set_changed must be boolean")
+
+    for phase in ("before", "during", "after"):
+        key = f"candidate_satellites_{phase}"
+        if not isinstance(row.get(key), list):
+            raise ValueError(f"orbit context annotation {index} {key} must be a list")
+
+    value = row.get("minimum_epoch_distance_sec")
+    if value is not None:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(
+                f"orbit context annotation {index} minimum_epoch_distance_sec must be numeric or null"
+            )
+        if not math.isfinite(float(value)):
+            raise ValueError(
+                f"orbit context annotation {index} minimum_epoch_distance_sec must be finite"
+            )
+
+    return row
+
+
 def summarize_orbit_context_documents(documents: Iterable[dict[str, Any]]) -> dict[str, Any]:
     documents = list(documents)
     annotations: list[dict[str, Any]] = []
+    annotation_index = 0
     for document in documents:
+        if not isinstance(document, dict):
+            raise ValueError("orbit context input must be an object")
         if document.get("annotation_type") != "event_orbit_context":
             raise ValueError("all inputs must have annotation_type='event_orbit_context'")
         rows = document.get("annotations")
         if not isinstance(rows, list):
             raise ValueError("orbit context input must contain an annotations list")
-        annotations.extend(row for row in rows if isinstance(row, dict))
+        for row in rows:
+            annotations.append(_validated_annotation(row, annotation_index))
+            annotation_index += 1
 
-    changed = sum(bool(row.get("candidate_set_changed")) for row in annotations)
+    changed = sum(1 for row in annotations if row["candidate_set_changed"])
     candidate_counts: dict[str, list[float]] = {"before": [], "during": [], "after": []}
     epoch_distances: list[float] = []
     for row in annotations:
         for phase in candidate_counts:
-            candidates = row.get(f"candidate_satellites_{phase}")
-            if isinstance(candidates, list):
-                candidate_counts[phase].append(float(len(candidates)))
+            candidates = row[f"candidate_satellites_{phase}"]
+            candidate_counts[phase].append(float(len(candidates)))
         value = row.get("minimum_epoch_distance_sec")
         if value is not None:
-            try:
-                numeric = float(value)
-            except (TypeError, ValueError):
-                continue
-            if math.isfinite(numeric):
-                epoch_distances.append(abs(numeric))
+            epoch_distances.append(abs(float(value)))
 
     event_count = len(annotations)
     return {
