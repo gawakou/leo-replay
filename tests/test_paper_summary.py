@@ -122,6 +122,23 @@ def test_render_latex_macros_rejects_non_integer_run_count(value: object) -> Non
         render_latex_macros(summary)
 
 
+@pytest.mark.parametrize("value", [0, -1])
+def test_render_latex_macros_rejects_non_positive_run_count(value: int) -> None:
+    summary = _summary()
+    summary["fixed_runs"] = value
+
+    with pytest.raises(PaperSummaryError, match="fixed_runs"):
+        render_latex_macros(summary)
+
+
+def test_render_latex_macros_rejects_mismatched_run_counts() -> None:
+    summary = _summary()
+    summary["profile_runs"] = 29
+
+    with pytest.raises(PaperSummaryError, match="mismatched repeated-lab run counts"):
+        render_latex_macros(summary)
+
+
 def test_main_rejects_input_output_collision_without_overwriting(tmp_path) -> None:
     summary_path = tmp_path / "summary.json"
     original = json.dumps(_summary(), sort_keys=True)
