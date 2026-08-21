@@ -68,3 +68,40 @@ def test_rejects_non_event_evaluation():
         assert "event_replay" in str(exc)
     else:
         raise AssertionError("expected ValueError")
+
+
+def test_rejects_non_boolean_detection_flag():
+    document = {
+        "evaluation_type": "event_replay",
+        "events": [_event("false", False, 0.02, 3.0)],
+    }
+    try:
+        summarize_event_documents([document])
+    except ValueError as exc:
+        assert "measured.detected" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+
+def test_rejects_non_finite_error_metric():
+    document = {
+        "evaluation_type": "event_replay",
+        "events": [_event(True, True, float("nan"), 3.0)],
+    }
+    try:
+        summarize_event_documents([document])
+    except ValueError as exc:
+        assert "errors.start_time_error_sec" in str(exc)
+        assert "non-finite" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+
+def test_rejects_malformed_event_row():
+    document = {"evaluation_type": "event_replay", "events": ["bad-row"]}
+    try:
+        summarize_event_documents([document])
+    except ValueError as exc:
+        assert "non-object event" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
