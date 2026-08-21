@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import json
 import math
 
 import pytest
 
-from leo_replay.paper_summary import PaperSummaryError, render_latex_macros
+from leo_replay.paper_summary import PaperSummaryError, main, render_latex_macros
 
 
 def _summary() -> dict[str, object]:
@@ -119,3 +120,26 @@ def test_render_latex_macros_rejects_non_integer_run_count(value: object) -> Non
 
     with pytest.raises(PaperSummaryError, match="fixed_runs"):
         render_latex_macros(summary)
+
+
+def test_main_rejects_input_output_collision_without_overwriting(tmp_path) -> None:
+    summary_path = tmp_path / "summary.json"
+    original = json.dumps(_summary(), sort_keys=True)
+    summary_path.write_text(original, encoding="utf-8")
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--input", str(summary_path), "--output", str(summary_path)])
+
+    assert exc_info.value.code == 2
+    assert summary_path.read_text(encoding="utf-8") == original
+
+
+def test_main_rejects_canonical_path_alias(tmp_path) -> None:
+    summary_path = tmp_path / "summary.json"
+    summary_path.write_text(json.dumps(_summary()), encoding="utf-8")
+    alias = tmp_path / "." / "summary.json"
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--input", str(summary_path), "--output", str(alias)])
+
+    assert exc_info.value.code == 2
