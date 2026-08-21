@@ -3,7 +3,12 @@ from pathlib import Path
 
 import pytest
 
-from leo_replay.lab_metrics import parse_execution_log, parse_iperf_mbps, parse_ping
+from leo_replay.lab_metrics import (
+    LabMetricError,
+    parse_execution_log,
+    parse_iperf_mbps,
+    parse_ping,
+)
 
 
 def test_parse_ping(tmp_path: Path):
@@ -58,3 +63,23 @@ def test_parse_execution_log(tmp_path: Path):
     assert forward["mean_absolute_ms"] == 2.0
     assert reverse["sample_count"] == 2
     assert reverse["mean_absolute_ms"] == 3.0
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        {"direction": "forward"},
+        {"direction": "forward", "lateness_ms": "1.0"},
+        {"direction": "forward", "lateness_ms": True},
+        {"direction": "forward", "lateness_ms": float("nan")},
+        {"direction": "forward", "lateness_ms": float("inf")},
+        {"direction": "sideways", "lateness_ms": 1.0},
+        {"lateness_ms": 1.0},
+    ],
+)
+def test_parse_execution_log_rejects_invalid_timing_records(tmp_path: Path, record: dict):
+    path = tmp_path / "invalid-execution.jsonl"
+    path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+    with pytest.raises(LabMetricError):
+        parse_execution_log(path)
