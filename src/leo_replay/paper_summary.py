@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -16,19 +17,22 @@ def _value(summary: dict[str, Any], *path: str) -> float:
         if not isinstance(current, dict) or key not in current:
             raise PaperSummaryError("missing summary field: " + ".".join(path))
         current = current[key]
-    try:
-        return float(current)
-    except (TypeError, ValueError) as exc:
-        raise PaperSummaryError("non-numeric summary field: " + ".".join(path)) from exc
+    field = ".".join(path)
+    if isinstance(current, bool) or not isinstance(current, (int, float)):
+        raise PaperSummaryError("non-numeric summary field: " + field)
+    value = float(current)
+    if not math.isfinite(value):
+        raise PaperSummaryError("non-finite summary field: " + field)
+    return value
 
 
 def _integer(summary: dict[str, Any], key: str) -> int:
     if key not in summary:
         raise PaperSummaryError(f"missing summary field: {key}")
-    try:
-        return int(summary[key])
-    except (TypeError, ValueError) as exc:
-        raise PaperSummaryError(f"non-integer summary field: {key}") from exc
+    value = summary[key]
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise PaperSummaryError(f"non-integer summary field: {key}")
+    return value
 
 
 def render_latex_macros(summary: dict[str, Any]) -> str:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import pytest
 
 from leo_replay.paper_summary import PaperSummaryError, render_latex_macros
@@ -94,4 +96,26 @@ def test_render_latex_macros_rejects_missing_metric() -> None:
     execution.pop("run_mean_forward_reverse_skew_ms")
 
     with pytest.raises(PaperSummaryError, match="run_mean_forward_reverse_skew_ms"):
+        render_latex_macros(summary)
+
+
+@pytest.mark.parametrize("value", [True, "50.125", math.nan, math.inf, -math.inf])
+def test_render_latex_macros_rejects_invalid_numeric_metric(value: object) -> None:
+    summary = _summary()
+    fixed = summary["fixed"]
+    assert isinstance(fixed, dict)
+    rtt = fixed["rtt_delta_ms"]
+    assert isinstance(rtt, dict)
+    rtt["mean"] = value
+
+    with pytest.raises(PaperSummaryError, match="rtt_delta_ms.mean"):
+        render_latex_macros(summary)
+
+
+@pytest.mark.parametrize("value", [True, "30", 30.0])
+def test_render_latex_macros_rejects_non_integer_run_count(value: object) -> None:
+    summary = _summary()
+    summary["fixed_runs"] = value
+
+    with pytest.raises(PaperSummaryError, match="fixed_runs"):
         render_latex_macros(summary)
