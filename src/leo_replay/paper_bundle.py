@@ -107,6 +107,34 @@ def _sha256_bytes(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def _validate_distinct_paths(
+    lab_path: Path,
+    event_path: Path,
+    orbit_path: Path,
+    output_path: Path,
+    manifest_path: Path | None,
+) -> None:
+    """Reject path aliases that could overwrite paper inputs or generated artifacts."""
+    named_paths: list[tuple[str, Path]] = [
+        ("lab", lab_path),
+        ("event", event_path),
+        ("orbit", orbit_path),
+        ("output", output_path),
+    ]
+    if manifest_path is not None:
+        named_paths.append(("manifest", manifest_path))
+
+    resolved: dict[Path, str] = {}
+    for name, path in named_paths:
+        canonical = path.expanduser().resolve(strict=False)
+        previous = resolved.get(canonical)
+        if previous is not None:
+            raise PaperBundleError(
+                f"paper bundle paths must be distinct: {previous} and {name} both resolve to {canonical}"
+            )
+        resolved[canonical] = name
+
+
 def build_provenance_manifest(
     lab_path: Path,
     event_path: Path,
@@ -150,6 +178,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
+        _validate_distinct_paths(args.lab, args.event, args.orbit, args.output, args.manifest)
         payload = render_paper_bundle_macros(
             _load_object(args.lab),
             _load_object(args.event),
