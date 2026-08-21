@@ -14,6 +14,16 @@ def _annotation(changed, before, during, after, epoch_distance):
     }
 
 
+def _assert_invalid(annotation, expected):
+    document = {"annotation_type": "event_orbit_context", "annotations": [annotation]}
+    try:
+        summarize_orbit_context_documents([document])
+    except ValueError as exc:
+        assert expected in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+
 def test_orbit_context_summary():
     documents = [
         {
@@ -60,3 +70,26 @@ def test_rejects_non_orbit_context_input():
         assert "event_orbit_context" in str(exc)
     else:
         raise AssertionError("expected ValueError")
+
+
+def test_rejects_non_object_annotation():
+    _assert_invalid("not-an-object", "must be an object")
+
+
+def test_rejects_non_boolean_candidate_change_flag():
+    annotation = _annotation("false", 1, 1, 1, 12.0)
+    _assert_invalid(annotation, "candidate_set_changed must be boolean")
+
+
+def test_rejects_invalid_candidate_lists():
+    annotation = _annotation(False, 1, 1, 1, 12.0)
+    annotation["candidate_satellites_during"] = None
+    _assert_invalid(annotation, "candidate_satellites_during must be a list")
+
+
+def test_rejects_invalid_epoch_distance():
+    annotation = _annotation(False, 1, 1, 1, "12.0")
+    _assert_invalid(annotation, "minimum_epoch_distance_sec must be numeric or null")
+
+    annotation = _annotation(False, 1, 1, 1, float("nan"))
+    _assert_invalid(annotation, "minimum_epoch_distance_sec must be finite")
