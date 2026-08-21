@@ -52,6 +52,23 @@ def _lab_summary() -> dict[str, object]:
                 "p95": 2.345,
                 "p99": 3.456,
             },
+            "run_mean_absolute_lateness_ms": {
+                "mean": 2.111,
+                "standard_deviation": 0.333,
+                "mean_ci95_half_width": 0.119,
+            },
+            "run_p95_absolute_lateness_ms": {
+                "mean": 5.432,
+                "standard_deviation": 0.654,
+                "mean_ci95_half_width": 0.234,
+            },
+            "run_forward_mean_absolute_lateness_ms": {"mean": 1.987},
+            "run_reverse_mean_absolute_lateness_ms": {"mean": 2.235},
+            "run_mean_forward_reverse_skew_ms": {
+                "mean": 1.101,
+                "standard_deviation": 0.222,
+                "mean_ci95_half_width": 0.079,
+            },
         },
     }
 
@@ -89,6 +106,9 @@ def test_render_paper_bundle_macros() -> None:
     assert "\\newcommand{\\LeoRttDeltaCi95HalfWidthMs}{0.45}" in payload
     assert "\\newcommand{\\LeoLatenessCi95HalfWidthMs}{0.27}" in payload
     assert "\\newcommand{\\LeoDirectionSkewSdMs}{0.42}" in payload
+    assert "\\newcommand{\\LeoRunLatenessMeanMs}{2.11}" in payload
+    assert "\\newcommand{\\LeoRunLatenessCi95HalfWidthMs}{0.12}" in payload
+    assert "\\newcommand{\\LeoRunDirectionSkewCi95HalfWidthMs}{0.08}" in payload
     assert "\\newcommand{\\LeoEventEvaluations}{30}" in payload
     assert "\\newcommand{\\LeoEventFOnePct}{97.5}" in payload
     assert "\\newcommand{\\LeoEventStartErrorP95Sec}{0.123}" in payload
