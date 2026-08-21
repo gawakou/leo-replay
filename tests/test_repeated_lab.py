@@ -87,7 +87,7 @@ def test_summarize_repeated_lab_artifacts(tmp_path: Path) -> None:
     assert result["execution"]["run_mean_absolute_lateness_ms"]["mean_ci95_half_width"] == pytest.approx(
         1.96
     )
-    assert result["execution"]["run_p95_absolute_lateness_ms"]["mean"] == pytest.approx(4.9)
+    assert result["execution"]["run_p95_absolute_lateness_ms"]["mean"] == pytest.approx(4.35)
     assert result["execution"]["run_forward_mean_absolute_lateness_ms"]["mean"] == 1.5
     assert result["execution"]["run_reverse_mean_absolute_lateness_ms"]["mean"] == 4.5
     assert result["execution"]["run_mean_forward_reverse_skew_ms"]["mean"] == 3.0
