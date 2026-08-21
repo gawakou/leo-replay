@@ -116,6 +116,46 @@ def render_latex_macros(summary: dict[str, Any]) -> str:
             "LeoDirectionSkewP99Ms",
             f'{_value(summary, "execution", "forward_reverse_skew_ms", "p99"):.2f}',
         ),
+        (
+            "LeoRunLatenessMeanMs",
+            f'{_value(summary, "execution", "run_mean_absolute_lateness_ms", "mean"):.2f}',
+        ),
+        (
+            "LeoRunLatenessSdMs",
+            f'{_value(summary, "execution", "run_mean_absolute_lateness_ms", "standard_deviation"):.2f}',
+        ),
+        (
+            "LeoRunLatenessCi95HalfWidthMs",
+            f'{_value(summary, "execution", "run_mean_absolute_lateness_ms", "mean_ci95_half_width"):.2f}',
+        ),
+        (
+            "LeoRunP95LatenessMeanMs",
+            f'{_value(summary, "execution", "run_p95_absolute_lateness_ms", "mean"):.2f}',
+        ),
+        (
+            "LeoRunP95LatenessCi95HalfWidthMs",
+            f'{_value(summary, "execution", "run_p95_absolute_lateness_ms", "mean_ci95_half_width"):.2f}',
+        ),
+        (
+            "LeoRunForwardLatenessMeanMs",
+            f'{_value(summary, "execution", "run_forward_mean_absolute_lateness_ms", "mean"):.2f}',
+        ),
+        (
+            "LeoRunReverseLatenessMeanMs",
+            f'{_value(summary, "execution", "run_reverse_mean_absolute_lateness_ms", "mean"):.2f}',
+        ),
+        (
+            "LeoRunDirectionSkewMeanMs",
+            f'{_value(summary, "execution", "run_mean_forward_reverse_skew_ms", "mean"):.2f}',
+        ),
+        (
+            "LeoRunDirectionSkewSdMs",
+            f'{_value(summary, "execution", "run_mean_forward_reverse_skew_ms", "standard_deviation"):.2f}',
+        ),
+        (
+            "LeoRunDirectionSkewCi95HalfWidthMs",
+            f'{_value(summary, "execution", "run_mean_forward_reverse_skew_ms", "mean_ci95_half_width"):.2f}',
+        ),
     ]
     lines = [
         "% Generated from LEO-Replay repeated-lab summary; do not edit by hand.",
