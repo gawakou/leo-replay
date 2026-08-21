@@ -109,6 +109,14 @@ first_version_line() {
     fi
 }
 
+require_artifact() {
+    local path="$1"
+    if [[ ! -s "${path}" ]]; then
+        printf 'expected fresh evaluation artifact is missing or empty: %s\n' "${path}" >&2
+        exit 2
+    fi
+}
+
 {
     printf 'collected_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     printf 'backend=%s\n' "${BACKEND}"
@@ -129,12 +137,22 @@ first_version_line() {
 for ((run = 1; run <= REPETITIONS; run++)); do
     RUN_DIR="$(printf '%s/run-%03d' "${RESULT_DIR}" "${run}")"
     mkdir -p "${RUN_DIR}"
+
+    # Remove the exact artifacts expected from this phase before invoking the
+    # lab so a partial or failed run can never reuse output from a prior run.
+    rm -f "${ARTIFACT_DIR}/fixed-summary.json"
     printf '[%03d/%03d] fixed-condition\n' "${run}" "${REPETITIONS}"
     "${FIXED_CMD[@]}"
+    require_artifact "${ARTIFACT_DIR}/fixed-summary.json"
     cp "${ARTIFACT_DIR}/fixed-summary.json" "${RUN_DIR}/fixed-summary.json"
 
+    rm -f \
+        "${ARTIFACT_DIR}/profile-summary.json" \
+        "${ARTIFACT_DIR}/profile-execution.jsonl"
     printf '[%03d/%03d] directional-profile\n' "${run}" "${REPETITIONS}"
     "${PROFILE_CMD[@]}"
+    require_artifact "${ARTIFACT_DIR}/profile-summary.json"
+    require_artifact "${ARTIFACT_DIR}/profile-execution.jsonl"
     cp "${ARTIFACT_DIR}/profile-summary.json" "${RUN_DIR}/profile-summary.json"
     cp "${ARTIFACT_DIR}/profile-execution.jsonl" "${RUN_DIR}/profile-execution.jsonl"
 done
