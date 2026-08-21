@@ -102,19 +102,36 @@ def parse_execution_log(path: Path) -> dict[str, Any]:
             raise LabMetricError(f"invalid JSONL at {path}:{line_number}: {exc}") from exc
         if not isinstance(record, dict):
             raise LabMetricError(f"execution record at {path}:{line_number} is not an object")
+
+        direction = record.get("direction")
+        if direction not in {"forward", "reverse"}:
+            raise LabMetricError(
+                f"execution record at {path}:{line_number} has invalid direction {direction!r}"
+            )
+        lateness_value = record.get("lateness_ms")
+        if isinstance(lateness_value, bool) or not isinstance(lateness_value, (int, float)):
+            raise LabMetricError(
+                f"execution record at {path}:{line_number} has invalid lateness_ms {lateness_value!r}"
+            )
+        lateness = float(lateness_value)
+        if not math.isfinite(lateness):
+            raise LabMetricError(
+                f"execution record at {path}:{line_number} has non-finite lateness_ms {lateness_value!r}"
+            )
+        record["lateness_ms"] = lateness
         records.append(record)
     if not records:
         raise LabMetricError(f"execution log is empty: {path}")
 
-    directions = sorted({str(record.get("direction", "")) for record in records})
-    lateness = [float(record.get("lateness_ms", 0.0)) for record in records]
+    directions = sorted({str(record["direction"]) for record in records})
+    lateness = [float(record["lateness_ms"]) for record in records]
     overall = _lateness_summary(lateness)
     by_direction: dict[str, dict[str, float | int]] = {}
     for direction in directions:
         direction_values = [
-            float(record.get("lateness_ms", 0.0))
+            float(record["lateness_ms"])
             for record in records
-            if str(record.get("direction", "")) == direction
+            if str(record["direction"]) == direction
         ]
         by_direction[direction] = _lateness_summary(direction_values)
 
