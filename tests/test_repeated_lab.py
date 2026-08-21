@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from leo_replay.repeated_lab import RepeatedLabError, summarize
+from leo_replay.repeated_lab import RepeatedLabError, _load_execution, summarize
 
 
 def _write_json(path: Path, payload: dict[str, object]) -> None:
@@ -91,6 +91,55 @@ def test_summarize_repeated_lab_artifacts(tmp_path: Path) -> None:
     assert result["execution"]["run_forward_mean_absolute_lateness_ms"]["mean"] == 1.5
     assert result["execution"]["run_reverse_mean_absolute_lateness_ms"]["mean"] == 4.5
     assert result["execution"]["run_mean_forward_reverse_skew_ms"]["mean"] == 3.0
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("lateness_ms", "1.0"),
+        ("lateness_ms", True),
+        ("lateness_ms", float("nan")),
+        ("lateness_ms", float("inf")),
+        ("planned_sec", "0.0"),
+        ("planned_sec", False),
+        ("planned_sec", float("nan")),
+        ("applied_sec", "0.1"),
+        ("applied_sec", True),
+        ("applied_sec", float("inf")),
+    ],
+)
+def test_load_execution_rejects_invalid_timing_fields(
+    tmp_path: Path, field: str, value: object
+) -> None:
+    record = {
+        "action": "timeseries_state",
+        "event_id": None,
+        "direction": "forward",
+        "planned_sec": 0.0,
+        "applied_sec": 0.001,
+        "lateness_ms": 1.0,
+    }
+    record[field] = value
+    path = tmp_path / "invalid-execution.jsonl"
+    path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+    with pytest.raises(RepeatedLabError, match=field):
+        _load_execution(path)
+
+
+def test_load_execution_rejects_missing_timing_field(tmp_path: Path) -> None:
+    record = {
+        "action": "timeseries_state",
+        "event_id": None,
+        "direction": "forward",
+        "planned_sec": 0.0,
+        "applied_sec": 0.001,
+    }
+    path = tmp_path / "missing-execution.jsonl"
+    path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+    with pytest.raises(RepeatedLabError, match="lateness_ms"):
+        _load_execution(path)
 
 
 def test_summarize_rejects_unpaired_run_artifacts(tmp_path: Path) -> None:

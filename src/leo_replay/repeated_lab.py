@@ -73,6 +73,20 @@ def _load_object(path: Path) -> dict[str, Any]:
     return document
 
 
+def _finite_timing_field(record: dict[str, Any], field: str, path: Path, line_number: int) -> float:
+    value = record.get(field)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise RepeatedLabError(
+            f"execution record at {path}:{line_number} has invalid {field} {value!r}"
+        )
+    number = float(value)
+    if not math.isfinite(number):
+        raise RepeatedLabError(
+            f"execution record at {path}:{line_number} has non-finite {field} {value!r}"
+        )
+    return number
+
+
 def _load_execution(path: Path) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
@@ -84,15 +98,12 @@ def _load_execution(path: Path) -> list[dict[str, Any]]:
             raise RepeatedLabError(f"invalid JSONL at {path}:{line_number}: {exc}") from exc
         if not isinstance(record, dict):
             raise RepeatedLabError(f"execution record at {path}:{line_number} is not an object")
-        direction = str(record.get("direction", ""))
+        direction = record.get("direction")
         if direction not in {"forward", "reverse"}:
             raise RepeatedLabError(f"unknown direction {direction!r} at {path}:{line_number}")
-        try:
-            lateness = float(record["lateness_ms"])
-            planned_sec = float(record["planned_sec"])
-            applied_sec = float(record["applied_sec"])
-        except (KeyError, TypeError, ValueError) as exc:
-            raise RepeatedLabError(f"invalid timing fields at {path}:{line_number}") from exc
+        lateness = _finite_timing_field(record, "lateness_ms", path, line_number)
+        planned_sec = _finite_timing_field(record, "planned_sec", path, line_number)
+        applied_sec = _finite_timing_field(record, "applied_sec", path, line_number)
         records.append(
             {
                 "direction": direction,
