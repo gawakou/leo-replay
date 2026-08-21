@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -22,10 +23,12 @@ def _number(document: dict[str, Any], *path: str) -> float:
         if not isinstance(current, dict) or key not in current:
             raise PaperBundleError("missing summary field: " + ".".join(path))
         current = current[key]
-    try:
-        return float(current)
-    except (TypeError, ValueError) as exc:
-        raise PaperBundleError("non-numeric summary field: " + ".".join(path)) from exc
+    if isinstance(current, bool) or not isinstance(current, (int, float)):
+        raise PaperBundleError("non-numeric summary field: " + ".".join(path))
+    value = float(current)
+    if not math.isfinite(value):
+        raise PaperBundleError("non-finite summary field: " + ".".join(path))
+    return value
 
 
 def _integer(document: dict[str, Any], *path: str) -> int:
