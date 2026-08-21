@@ -73,6 +73,20 @@ def _load_object(path: Path) -> dict[str, Any]:
     return document
 
 
+def _finite_fixed_field(
+    item: dict[str, Any], field: str, path: Path, *, require_positive: bool = False
+) -> float:
+    value = item.get(field)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise RepeatedLabError(f"fixed summary at {path} has invalid {field} {value!r}")
+    number = float(value)
+    if not math.isfinite(number):
+        raise RepeatedLabError(f"fixed summary at {path} has non-finite {field} {value!r}")
+    if require_positive and number <= 0.0:
+        raise RepeatedLabError(f"fixed summary at {path} requires positive {field}, got {value!r}")
+    return number
+
+
 def _finite_timing_field(record: dict[str, Any], field: str, path: Path, line_number: int) -> float:
     value = record.get(field)
     if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -180,17 +194,37 @@ def summarize(root: Path) -> dict[str, Any]:
             "fixed-condition failures found: " + ", ".join(str(path) for path in failed_fixed)
         )
 
+    rtt_delta = [
+        _finite_fixed_field(item, "rtt_delta_ms", path)
+        for path, item in zip(fixed_paths, fixed)
+    ]
+    forward_throughput = [
+        _finite_fixed_field(item, "forward_throughput_mbps", path, require_positive=True)
+        for path, item in zip(fixed_paths, fixed)
+    ]
+    reverse_throughput = [
+        _finite_fixed_field(item, "reverse_throughput_mbps", path)
+        for path, item in zip(fixed_paths, fixed)
+    ]
+    configured_forward = [
+        _finite_fixed_field(item, "configured_forward_rate_mbps", path, require_positive=True)
+        for path, item in zip(fixed_paths, fixed)
+    ]
+    configured_reverse = [
+        _finite_fixed_field(item, "configured_reverse_rate_mbps", path, require_positive=True)
+        for path, item in zip(fixed_paths, fixed)
+    ]
+
     forward_realization = [
-        float(item["forward_throughput_mbps"]) / float(item["configured_forward_rate_mbps"])
-        for item in fixed
+        throughput / configured
+        for throughput, configured in zip(forward_throughput, configured_forward)
     ]
     reverse_realization = [
-        float(item["reverse_throughput_mbps"]) / float(item["configured_reverse_rate_mbps"])
-        for item in fixed
+        throughput / configured
+        for throughput, configured in zip(reverse_throughput, configured_reverse)
     ]
     direction_ratio = [
-        float(item["reverse_throughput_mbps"]) / float(item["forward_throughput_mbps"])
-        for item in fixed
+        reverse / forward for reverse, forward in zip(reverse_throughput, forward_throughput)
     ]
 
     signed_lateness: list[float] = []
@@ -236,13 +270,9 @@ def summarize(root: Path) -> dict[str, Any]:
         "fixed_runs": len(fixed_paths),
         "profile_runs": len(execution_paths),
         "fixed": {
-            "rtt_delta_ms": _stats(float(item["rtt_delta_ms"]) for item in fixed),
-            "forward_throughput_mbps": _stats(
-                float(item["forward_throughput_mbps"]) for item in fixed
-            ),
-            "reverse_throughput_mbps": _stats(
-                float(item["reverse_throughput_mbps"]) for item in fixed
-            ),
+            "rtt_delta_ms": _stats(rtt_delta),
+            "forward_throughput_mbps": _stats(forward_throughput),
+            "reverse_throughput_mbps": _stats(reverse_throughput),
             "forward_realization_ratio": _stats(forward_realization),
             "reverse_realization_ratio": _stats(reverse_realization),
             "reverse_forward_ratio": _stats(direction_ratio),
