@@ -186,15 +186,40 @@ def summarize(root: Path) -> dict[str, Any]:
     absolute_lateness: list[float] = []
     by_direction: dict[str, list[float]] = {"forward": [], "reverse": []}
     pair_skews: list[float] = []
+    run_mean_absolute_lateness: list[float] = []
+    run_p95_absolute_lateness: list[float] = []
+    run_forward_mean_absolute_lateness: list[float] = []
+    run_reverse_mean_absolute_lateness: list[float] = []
+    run_mean_forward_reverse_skew: list[float] = []
+
     for path in execution_paths:
         records = _load_execution(path)
-        pair_skews.extend(_pair_skews(path, records))
+        run_skews = _pair_skews(path, records)
+        pair_skews.extend(run_skews)
+
+        run_absolute: list[float] = []
+        run_by_direction: dict[str, list[float]] = {"forward": [], "reverse": []}
         for record in records:
             direction = str(record["direction"])
             value = float(record["lateness_ms"])
+            absolute = abs(value)
             signed_lateness.append(value)
-            absolute_lateness.append(abs(value))
-            by_direction[direction].append(abs(value))
+            absolute_lateness.append(absolute)
+            by_direction[direction].append(absolute)
+            run_absolute.append(absolute)
+            run_by_direction[direction].append(absolute)
+
+        if not run_by_direction["forward"] or not run_by_direction["reverse"]:
+            raise RepeatedLabError(f"execution log lacks both directions: {path}")
+        run_mean_absolute_lateness.append(sum(run_absolute) / len(run_absolute))
+        run_p95_absolute_lateness.append(_percentile(run_absolute, 0.95))
+        run_forward_mean_absolute_lateness.append(
+            sum(run_by_direction["forward"]) / len(run_by_direction["forward"])
+        )
+        run_reverse_mean_absolute_lateness.append(
+            sum(run_by_direction["reverse"]) / len(run_by_direction["reverse"])
+        )
+        run_mean_forward_reverse_skew.append(sum(run_skews) / len(run_skews))
 
     return {
         "fixed_runs": len(fixed_paths),
@@ -217,6 +242,15 @@ def summarize(root: Path) -> dict[str, Any]:
             "forward_absolute_lateness_ms": _stats(by_direction["forward"]),
             "reverse_absolute_lateness_ms": _stats(by_direction["reverse"]),
             "forward_reverse_skew_ms": _stats(pair_skews),
+            "run_mean_absolute_lateness_ms": _stats(run_mean_absolute_lateness),
+            "run_p95_absolute_lateness_ms": _stats(run_p95_absolute_lateness),
+            "run_forward_mean_absolute_lateness_ms": _stats(
+                run_forward_mean_absolute_lateness
+            ),
+            "run_reverse_mean_absolute_lateness_ms": _stats(
+                run_reverse_mean_absolute_lateness
+            ),
+            "run_mean_forward_reverse_skew_ms": _stats(run_mean_forward_reverse_skew),
         },
     }
 
