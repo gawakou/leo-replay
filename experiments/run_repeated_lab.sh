@@ -100,6 +100,15 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+first_version_line() {
+    local output
+    if output="$("$@" 2>&1)" && [[ -n "${output}" ]]; then
+        printf '%s\n' "${output}" | head -n 1
+    else
+        printf 'unavailable\n'
+    fi
+}
+
 {
     printf 'collected_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     printf 'backend=%s\n' "${BACKEND}"
@@ -107,8 +116,14 @@ trap cleanup EXIT INT TERM
     printf 'git_commit=%s\n' "$(git -C "${REPOSITORY_ROOT}" rev-parse HEAD 2>/dev/null || printf unknown)"
     printf 'git_tracked_worktree_clean=yes\n'
     printf 'git_runtime_untracked_clean=yes\n'
+    printf 'leo_replay=%s\n' "$(PYTHONPATH="${REPOSITORY_ROOT}/src" python3 -c 'import leo_replay; print(leo_replay.__version__)')"
     printf 'uname=%s\n' "$(uname -a)"
     printf 'python=%s\n' "$(python3 --version 2>&1)"
+    printf 'docker=%s\n' "$(first_version_line docker --version)"
+    printf 'iproute2=%s\n' "$(first_version_line ip -V)"
+    printf 'tc=%s\n' "$(first_version_line tc -V)"
+    printf 'iperf3=%s\n' "$(first_version_line iperf3 --version)"
+    printf 'ping=%s\n' "$(first_version_line ping -V)"
 } > "${RESULT_DIR}/environment.txt"
 
 for ((run = 1; run <= REPETITIONS; run++)); do
