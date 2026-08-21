@@ -176,6 +176,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(argv)
 
+    if args.input.resolve() == args.output.resolve():
+        parser.error("--input and --output must refer to different paths")
+
     try:
         document = json.loads(args.input.read_text(encoding="utf-8"))
         if not isinstance(document, dict):
