@@ -117,6 +117,15 @@ def _validate_event_orbit_alignment(
             f"event_count={event_count}, orbit_event_count={orbit_event_count}"
         )
 
+    event_has_per_run = "events_per_evaluation" in event_summary
+    orbit_has_per_run = "events_per_evaluation" in orbit_summary
+    if not event_has_per_run and not orbit_has_per_run:
+        return
+    if event_has_per_run != orbit_has_per_run:
+        raise PaperBundleError(
+            "event/orbit summaries must both include events_per_evaluation for per-run alignment"
+        )
+
     event_per_run = _nonnegative_integer_list(event_summary, "events_per_evaluation")
     orbit_per_run = _nonnegative_integer_list(orbit_summary, "events_per_evaluation")
     event_evaluations = _integer(event_summary, "evaluation_count")
