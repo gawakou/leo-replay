@@ -229,7 +229,7 @@ def summarize(root: Path) -> dict[str, Any]:
         for path, item in zip(fixed_paths, fixed)
     ]
     reverse_throughput = [
-        _finite_fixed_field(item, "reverse_throughput_mbps", path)
+        _finite_fixed_field(item, "reverse_throughput_mbps", path, require_positive=True)
         for path, item in zip(fixed_paths, fixed)
     ]
     configured_forward = [
