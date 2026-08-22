@@ -41,6 +41,34 @@ def _stats(values: list[float]) -> dict[str, float | int | None]:
     }
 
 
+def _validated_candidate_list(value: Any, *, key: str, annotation_index: int) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        raise ValueError(f"orbit context annotation {annotation_index} {key} must be a list")
+
+    candidates: list[dict[str, Any]] = []
+    seen_norad_ids: set[str] = set()
+    for candidate_index, candidate in enumerate(value, start=1):
+        if not isinstance(candidate, dict):
+            raise ValueError(
+                f"orbit context annotation {annotation_index} {key}[{candidate_index}] must be an object"
+            )
+        norad_cat_id = candidate.get("norad_cat_id")
+        if not isinstance(norad_cat_id, str) or not norad_cat_id.strip():
+            raise ValueError(
+                f"orbit context annotation {annotation_index} {key}[{candidate_index}] "
+                "norad_cat_id must be a non-empty string"
+            )
+        normalized_id = norad_cat_id.strip()
+        if normalized_id in seen_norad_ids:
+            raise ValueError(
+                f"orbit context annotation {annotation_index} {key} contains duplicate "
+                f"norad_cat_id {normalized_id!r}"
+            )
+        seen_norad_ids.add(normalized_id)
+        candidates.append(candidate)
+    return candidates
+
+
 def _validated_annotation(row: Any, index: int) -> dict[str, Any]:
     if not isinstance(row, dict):
         raise ValueError(f"orbit context annotation {index} must be an object")
@@ -51,8 +79,7 @@ def _validated_annotation(row: Any, index: int) -> dict[str, Any]:
 
     for phase in ("before", "during", "after"):
         key = f"candidate_satellites_{phase}"
-        if not isinstance(row.get(key), list):
-            raise ValueError(f"orbit context annotation {index} {key} must be a list")
+        _validated_candidate_list(row.get(key), key=key, annotation_index=index)
 
     value = row.get("minimum_epoch_distance_sec")
     if value is not None:

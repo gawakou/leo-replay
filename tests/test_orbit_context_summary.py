@@ -4,12 +4,16 @@ from pathlib import Path
 from leo_replay.orbit_context_summary import main, summarize_orbit_context_documents
 
 
+def _candidates(count):
+    return [{"norad_cat_id": str(10000 + index)} for index in range(count)]
+
+
 def _annotation(changed, before, during, after, epoch_distance):
     return {
         "candidate_set_changed": changed,
-        "candidate_satellites_before": [{}] * before,
-        "candidate_satellites_during": [{}] * during,
-        "candidate_satellites_after": [{}] * after,
+        "candidate_satellites_before": _candidates(before),
+        "candidate_satellites_during": _candidates(during),
+        "candidate_satellites_after": _candidates(after),
         "minimum_epoch_distance_sec": epoch_distance,
     }
 
@@ -85,6 +89,25 @@ def test_rejects_invalid_candidate_lists():
     annotation = _annotation(False, 1, 1, 1, 12.0)
     annotation["candidate_satellites_during"] = None
     _assert_invalid(annotation, "candidate_satellites_during must be a list")
+
+
+def test_rejects_invalid_candidate_entries():
+    annotation = _annotation(False, 1, 1, 1, 12.0)
+    annotation["candidate_satellites_during"] = ["10001"]
+    _assert_invalid(annotation, "candidate_satellites_during[1] must be an object")
+
+    annotation = _annotation(False, 1, 1, 1, 12.0)
+    annotation["candidate_satellites_during"] = [{}]
+    _assert_invalid(annotation, "norad_cat_id must be a non-empty string")
+
+
+def test_rejects_duplicate_candidate_identities():
+    annotation = _annotation(False, 1, 1, 1, 12.0)
+    annotation["candidate_satellites_during"] = [
+        {"norad_cat_id": "12345"},
+        {"norad_cat_id": "12345"},
+    ]
+    _assert_invalid(annotation, "duplicate norad_cat_id '12345'")
 
 
 def test_rejects_invalid_epoch_distance():
