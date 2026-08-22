@@ -67,6 +67,26 @@ def test_cli_writes_json(tmp_path: Path):
     assert summary["minimum_epoch_distance_sec"]["p95"] == 30.0
 
 
+def test_cli_rejects_output_input_collision(tmp_path: Path):
+    source = tmp_path / "orbit-context.json"
+    original = json.dumps(
+        {
+            "annotation_type": "event_orbit_context",
+            "annotations": [_annotation(True, 1, 1, 2, 30.0)],
+        }
+    )
+    source.write_text(original, encoding="utf-8")
+
+    try:
+        main([str(source), "--output", str(tmp_path / "." / "orbit-context.json")])
+    except ValueError as exc:
+        assert "output path must differ from input path" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+    assert source.read_text(encoding="utf-8") == original
+
+
 def test_rejects_non_orbit_context_input():
     try:
         summarize_orbit_context_documents([{"annotation_type": "other", "annotations": []}])
