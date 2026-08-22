@@ -296,6 +296,19 @@ def summarize(root: Path) -> dict[str, Any]:
     }
 
 
+def _validate_output_path(root: Path, output: Path) -> None:
+    output_path = output.resolve(strict=False)
+    input_paths = [
+        *root.rglob("fixed-summary.json"),
+        *root.rglob("profile-execution.jsonl"),
+    ]
+    for input_path in input_paths:
+        if input_path.resolve(strict=False) == output_path:
+            raise RepeatedLabError(
+                f"output path collides with repeated-lab input artifact: {input_path}"
+            )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Summarize repeated LEO-Replay bidirectional lab artifacts"
@@ -304,6 +317,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
     try:
+        if args.output:
+            _validate_output_path(args.input, args.output)
         result = summarize(args.input)
     except (OSError, RepeatedLabError, KeyError, ZeroDivisionError) as exc:
         parser.error(str(exc))
