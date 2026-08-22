@@ -92,6 +92,18 @@ def _validate_paper_repetitions(
         )
 
 
+def _validate_event_orbit_alignment(
+    event_summary: dict[str, Any], orbit_summary: dict[str, Any]
+) -> None:
+    event_count = _nonnegative_integer(event_summary, "event_count")
+    orbit_event_count = _nonnegative_integer(orbit_summary, "event_count")
+    if event_count != orbit_event_count:
+        raise PaperBundleError(
+            "event/orbit summaries must cover the same number of events; "
+            f"event_count={event_count}, orbit_event_count={orbit_event_count}"
+        )
+
+
 def render_paper_bundle_macros(
     lab_summary: dict[str, Any],
     event_summary: dict[str, Any],
@@ -104,6 +116,7 @@ def render_paper_bundle_macros(
     _validate_paper_repetitions(
         lab_summary, event_summary, orbit_summary, expected_repetitions
     )
+    _validate_event_orbit_alignment(event_summary, orbit_summary)
 
     try:
         lab_payload = render_latex_macros(lab_summary).rstrip("\n")
