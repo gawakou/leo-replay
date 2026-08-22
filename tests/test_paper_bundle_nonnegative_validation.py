@@ -68,7 +68,7 @@ def test_rejects_negative_event_headline_metrics(target: str, path: tuple[str, .
     current: dict[str, object] = event
     for key in path[:-1]:
         current = current[key]  # type: ignore[assignment]
-    current[path[-1]] = -0.1
+    current[path[-1]] = -1
 
     with pytest.raises(PaperBundleError, match="negative"):
         render_paper_bundle_macros(_lab_summary(), event, _orbit_summary())
