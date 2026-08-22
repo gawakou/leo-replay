@@ -91,6 +91,10 @@ def _validated_annotation(row: Any, index: int) -> dict[str, Any]:
             raise ValueError(
                 f"orbit context annotation {index} minimum_epoch_distance_sec must be finite"
             )
+        if float(value) < 0.0:
+            raise ValueError(
+                f"orbit context annotation {index} minimum_epoch_distance_sec must be nonnegative"
+            )
 
     return row
 
@@ -122,7 +126,7 @@ def summarize_orbit_context_documents(documents: Iterable[dict[str, Any]]) -> di
             candidate_counts[phase].append(float(len(candidates)))
         value = row.get("minimum_epoch_distance_sec")
         if value is not None:
-            epoch_distances.append(abs(float(value)))
+            epoch_distances.append(float(value))
 
     event_count = len(annotations)
     return {
