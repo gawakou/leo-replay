@@ -31,6 +31,13 @@ def _number(document: dict[str, Any], *path: str) -> float:
     return value
 
 
+def _ratio(document: dict[str, Any], *path: str) -> float:
+    value = _number(document, *path)
+    if not 0.0 <= value <= 1.0:
+        raise PaperBundleError("out-of-range ratio summary field: " + ".".join(path))
+    return value
+
+
 def _integer(document: dict[str, Any], *path: str) -> int:
     value = _number(document, *path)
     if not value.is_integer():
@@ -92,9 +99,9 @@ def render_paper_bundle_macros(
     values: list[tuple[str, str]] = [
         ("LeoEventEvaluations", str(_integer(event_summary, "evaluation_count"))),
         ("LeoEventCount", str(_integer(event_summary, "event_count"))),
-        ("LeoEventPrecisionPct", f'{100.0 * _number(event_summary, "detection", "precision"):.1f}'),
-        ("LeoEventRecallPct", f'{100.0 * _number(event_summary, "detection", "recall"):.1f}'),
-        ("LeoEventFOnePct", f'{100.0 * _number(event_summary, "detection", "f1"):.1f}'),
+        ("LeoEventPrecisionPct", f'{100.0 * _ratio(event_summary, "detection", "precision"):.1f}'),
+        ("LeoEventRecallPct", f'{100.0 * _ratio(event_summary, "detection", "recall"):.1f}'),
+        ("LeoEventFOnePct", f'{100.0 * _ratio(event_summary, "detection", "f1"):.1f}'),
         (
             "LeoEventStartErrorP95Sec",
             f'{_number(event_summary, "errors", "start_time_error_sec", "p95_abs"):.3f}',
@@ -111,7 +118,7 @@ def render_paper_bundle_macros(
         ("LeoOrbitEventCount", str(_integer(orbit_summary, "event_count"))),
         (
             "LeoOrbitCandidateChangedPct",
-            f'{100.0 * _number(orbit_summary, "candidate_set_changed_ratio"):.1f}',
+            f'{100.0 * _ratio(orbit_summary, "candidate_set_changed_ratio"):.1f}',
         ),
         (
             "LeoOrbitCandidatesDuringMean",
