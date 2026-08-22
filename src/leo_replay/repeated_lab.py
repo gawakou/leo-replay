@@ -11,6 +11,9 @@ class RepeatedLabError(ValueError):
     """Raised when repeated lab artifacts are incomplete or invalid."""
 
 
+_TIMING_CONSISTENCY_TOLERANCE_MS = 0.002
+
+
 def _percentile(values: list[float], percentile: float) -> float:
     if not values:
         return 0.0
@@ -101,6 +104,22 @@ def _finite_timing_field(record: dict[str, Any], field: str, path: Path, line_nu
     return number
 
 
+def _validate_timing_consistency(
+    path: Path,
+    line_number: int,
+    *,
+    planned_sec: float,
+    applied_sec: float,
+    lateness_ms: float,
+) -> None:
+    expected_lateness_ms = (applied_sec - planned_sec) * 1000.0
+    if abs(lateness_ms - expected_lateness_ms) > _TIMING_CONSISTENCY_TOLERANCE_MS:
+        raise RepeatedLabError(
+            f"execution record at {path}:{line_number} has inconsistent timing: "
+            f"lateness_ms={lateness_ms!r}, expected approximately {expected_lateness_ms!r}"
+        )
+
+
 def _load_execution(path: Path) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
@@ -118,6 +137,13 @@ def _load_execution(path: Path) -> list[dict[str, Any]]:
         lateness = _finite_timing_field(record, "lateness_ms", path, line_number)
         planned_sec = _finite_timing_field(record, "planned_sec", path, line_number)
         applied_sec = _finite_timing_field(record, "applied_sec", path, line_number)
+        _validate_timing_consistency(
+            path,
+            line_number,
+            planned_sec=planned_sec,
+            applied_sec=applied_sec,
+            lateness_ms=lateness,
+        )
         records.append(
             {
                 "direction": direction,
