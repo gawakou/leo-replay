@@ -68,12 +68,14 @@ def _optional_finite_number(value: Any, *, field: str, event_index: int) -> floa
 def summarize_event_documents(documents: Iterable[dict[str, Any]]) -> dict[str, Any]:
     documents = list(documents)
     events: list[dict[str, Any]] = []
+    events_per_evaluation: list[int] = []
     for document_index, document in enumerate(documents, start=1):
         if document.get("evaluation_type") != "event_replay":
             raise ValueError("all inputs must have evaluation_type='event_replay'")
         rows = document.get("events")
         if not isinstance(rows, list):
             raise ValueError("event replay input must contain an events list")
+        events_per_evaluation.append(len(rows))
         for row_index, row in enumerate(rows, start=1):
             if not isinstance(row, dict):
                 raise ValueError(
@@ -143,6 +145,7 @@ def summarize_event_documents(documents: Iterable[dict[str, Any]]) -> dict[str, 
         "summary_type": "repeated_event_replay",
         "evaluation_count": len(documents),
         "event_count": len(events),
+        "events_per_evaluation": events_per_evaluation,
         "detection": {
             "reference_detected_count": reference_detected,
             "replay_detected_count": replay_detected,
