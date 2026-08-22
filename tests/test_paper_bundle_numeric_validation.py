@@ -67,6 +67,18 @@ def test_rejects_invalid_event_numeric_metrics(bad: object) -> None:
         render_paper_bundle_macros(_lab_summary(), event, _orbit_summary())
 
 
+@pytest.mark.parametrize("field", ["precision", "recall", "f1"])
+@pytest.mark.parametrize("bad", [-0.01, 1.01])
+def test_rejects_out_of_range_event_ratios(field: str, bad: float) -> None:
+    event = _event_summary()
+    detection = event["detection"]
+    assert isinstance(detection, dict)
+    detection[field] = bad
+
+    with pytest.raises(PaperBundleError, match=f"detection.{field}"):
+        render_paper_bundle_macros(_lab_summary(), event, _orbit_summary())
+
+
 @pytest.mark.parametrize("bad", [False, "4.0", math.nan, math.inf, -math.inf])
 def test_rejects_invalid_orbit_numeric_metrics(bad: object) -> None:
     orbit = _orbit_summary()
@@ -77,4 +89,13 @@ def test_rejects_invalid_orbit_numeric_metrics(bad: object) -> None:
     during["mean"] = bad
 
     with pytest.raises(PaperBundleError, match="candidate_count.during.mean"):
+        render_paper_bundle_macros(_lab_summary(), _event_summary(), orbit)
+
+
+@pytest.mark.parametrize("bad", [-0.01, 1.01])
+def test_rejects_out_of_range_orbit_candidate_change_ratio(bad: float) -> None:
+    orbit = _orbit_summary()
+    orbit["candidate_set_changed_ratio"] = bad
+
+    with pytest.raises(PaperBundleError, match="candidate_set_changed_ratio"):
         render_paper_bundle_macros(_lab_summary(), _event_summary(), orbit)
