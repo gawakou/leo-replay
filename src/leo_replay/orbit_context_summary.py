@@ -71,6 +71,7 @@ def _validated_annotation(row: Any, index: int) -> dict[str, Any]:
 def summarize_orbit_context_documents(documents: Iterable[dict[str, Any]]) -> dict[str, Any]:
     documents = list(documents)
     annotations: list[dict[str, Any]] = []
+    events_per_evaluation: list[int] = []
     annotation_index = 0
     for document in documents:
         if not isinstance(document, dict):
@@ -80,6 +81,7 @@ def summarize_orbit_context_documents(documents: Iterable[dict[str, Any]]) -> di
         rows = document.get("annotations")
         if not isinstance(rows, list):
             raise ValueError("orbit context input must contain an annotations list")
+        events_per_evaluation.append(len(rows))
         for row in rows:
             annotations.append(_validated_annotation(row, annotation_index))
             annotation_index += 1
@@ -101,6 +103,7 @@ def summarize_orbit_context_documents(documents: Iterable[dict[str, Any]]) -> di
         "summary_type": "repeated_event_orbit_context",
         "evaluation_count": len(documents),
         "event_count": event_count,
+        "events_per_evaluation": events_per_evaluation,
         "candidate_set_changed_count": changed,
         "candidate_set_changed_ratio": _rounded(changed / event_count) if event_count else None,
         "candidate_count": {phase: _stats(values) for phase, values in candidate_counts.items()},

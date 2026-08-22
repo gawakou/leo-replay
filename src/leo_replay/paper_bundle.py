@@ -59,6 +59,20 @@ def _nonnegative_integer(document: dict[str, Any], *path: str) -> int:
     return value
 
 
+def _nonnegative_integer_list(document: dict[str, Any], key: str) -> list[int]:
+    values = document.get(key)
+    if not isinstance(values, list):
+        raise PaperBundleError(f"summary field {key} must be a list")
+    normalized: list[int] = []
+    for index, value in enumerate(values):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise PaperBundleError(
+                f"summary field {key}[{index}] must be a nonnegative integer"
+            )
+        normalized.append(value)
+    return normalized
+
+
 def _require_type(document: dict[str, Any], key: str, expected: str) -> None:
     actual = document.get(key)
     if actual != expected:
@@ -101,6 +115,49 @@ def _validate_event_orbit_alignment(
         raise PaperBundleError(
             "event/orbit summaries must cover the same number of events; "
             f"event_count={event_count}, orbit_event_count={orbit_event_count}"
+        )
+
+    event_has_per_run = "events_per_evaluation" in event_summary
+    orbit_has_per_run = "events_per_evaluation" in orbit_summary
+    if not event_has_per_run and not orbit_has_per_run:
+        return
+    if event_has_per_run != orbit_has_per_run:
+        raise PaperBundleError(
+            "event/orbit summaries must both include events_per_evaluation for per-run alignment"
+        )
+
+    event_per_run = _nonnegative_integer_list(event_summary, "events_per_evaluation")
+    orbit_per_run = _nonnegative_integer_list(orbit_summary, "events_per_evaluation")
+    event_evaluations = _integer(event_summary, "evaluation_count")
+    orbit_evaluations = _integer(orbit_summary, "evaluation_count")
+    if len(event_per_run) != event_evaluations:
+        raise PaperBundleError(
+            "event summary events_per_evaluation length does not match evaluation_count"
+        )
+    if len(orbit_per_run) != orbit_evaluations:
+        raise PaperBundleError(
+            "orbit summary events_per_evaluation length does not match evaluation_count"
+        )
+    if sum(event_per_run) != event_count:
+        raise PaperBundleError("event summary events_per_evaluation does not sum to event_count")
+    if sum(orbit_per_run) != orbit_event_count:
+        raise PaperBundleError("orbit summary events_per_evaluation does not sum to event_count")
+    if event_per_run != orbit_per_run:
+        first_mismatch = next(
+            (
+                index
+                for index, (event_value, orbit_value) in enumerate(
+                    zip(event_per_run, orbit_per_run), start=1
+                )
+                if event_value != orbit_value
+            ),
+            None,
+        )
+        if first_mismatch is None:
+            first_mismatch = min(len(event_per_run), len(orbit_per_run)) + 1
+        raise PaperBundleError(
+            "event/orbit summaries must align per evaluation; "
+            f"first mismatch at evaluation {first_mismatch}"
         )
 
 
