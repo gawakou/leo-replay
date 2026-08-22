@@ -168,6 +168,17 @@ def summarize_event_files(paths: Iterable[Path]) -> dict[str, Any]:
     return summarize_event_documents(documents)
 
 
+def _validated_unique_input_paths(inputs: Iterable[Path]) -> list[Path]:
+    paths = list(inputs)
+    seen: set[Path] = set()
+    for path in paths:
+        canonical = path.resolve()
+        if canonical in seen:
+            raise ValueError(f"duplicate input path is not allowed: {path}")
+        seen.add(canonical)
+    return paths
+
+
 def _reject_output_input_collision(inputs: Iterable[Path], output: Path | None) -> None:
     if output is None:
         return
@@ -185,8 +196,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, help="write summary JSON to this path")
     args = parser.parse_args(argv)
 
-    _reject_output_input_collision(args.inputs, args.output)
-    summary = summarize_event_files(args.inputs)
+    inputs = _validated_unique_input_paths(args.inputs)
+    _reject_output_input_collision(inputs, args.output)
+    summary = summarize_event_files(inputs)
     rendered = json.dumps(summary, indent=2, sort_keys=True) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
