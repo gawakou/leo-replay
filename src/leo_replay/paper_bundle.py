@@ -38,11 +38,25 @@ def _ratio(document: dict[str, Any], *path: str) -> float:
     return value
 
 
+def _nonnegative(document: dict[str, Any], *path: str) -> float:
+    value = _number(document, *path)
+    if value < 0.0:
+        raise PaperBundleError("negative summary field: " + ".".join(path))
+    return value
+
+
 def _integer(document: dict[str, Any], *path: str) -> int:
     value = _number(document, *path)
     if not value.is_integer():
         raise PaperBundleError("non-integer summary field: " + ".".join(path))
     return int(value)
+
+
+def _nonnegative_integer(document: dict[str, Any], *path: str) -> int:
+    value = _integer(document, *path)
+    if value < 0:
+        raise PaperBundleError("negative integer summary field: " + ".".join(path))
+    return value
 
 
 def _require_type(document: dict[str, Any], key: str, expected: str) -> None:
@@ -98,35 +112,35 @@ def render_paper_bundle_macros(
 
     values: list[tuple[str, str]] = [
         ("LeoEventEvaluations", str(_integer(event_summary, "evaluation_count"))),
-        ("LeoEventCount", str(_integer(event_summary, "event_count"))),
+        ("LeoEventCount", str(_nonnegative_integer(event_summary, "event_count"))),
         ("LeoEventPrecisionPct", f'{100.0 * _ratio(event_summary, "detection", "precision"):.1f}'),
         ("LeoEventRecallPct", f'{100.0 * _ratio(event_summary, "detection", "recall"):.1f}'),
         ("LeoEventFOnePct", f'{100.0 * _ratio(event_summary, "detection", "f1"):.1f}'),
         (
             "LeoEventStartErrorP95Sec",
-            f'{_number(event_summary, "errors", "start_time_error_sec", "p95_abs"):.3f}',
+            f'{_nonnegative(event_summary, "errors", "start_time_error_sec", "p95_abs"):.3f}',
         ),
         (
             "LeoEventDurationErrorP95Sec",
-            f'{_number(event_summary, "errors", "duration_error_sec", "p95_abs"):.3f}',
+            f'{_nonnegative(event_summary, "errors", "duration_error_sec", "p95_abs"):.3f}',
         ),
         (
             "LeoEventRttMaeMeanMs",
-            f'{_number(event_summary, "errors", "rtt_mae_ms", "mean_abs"):.2f}',
+            f'{_nonnegative(event_summary, "errors", "rtt_mae_ms", "mean_abs"):.2f}',
         ),
         ("LeoOrbitEvaluations", str(_integer(orbit_summary, "evaluation_count"))),
-        ("LeoOrbitEventCount", str(_integer(orbit_summary, "event_count"))),
+        ("LeoOrbitEventCount", str(_nonnegative_integer(orbit_summary, "event_count"))),
         (
             "LeoOrbitCandidateChangedPct",
             f'{100.0 * _ratio(orbit_summary, "candidate_set_changed_ratio"):.1f}',
         ),
         (
             "LeoOrbitCandidatesDuringMean",
-            f'{_number(orbit_summary, "candidate_count", "during", "mean"):.2f}',
+            f'{_nonnegative(orbit_summary, "candidate_count", "during", "mean"):.2f}',
         ),
         (
             "LeoOrbitEpochDistanceP95Sec",
-            f'{_number(orbit_summary, "minimum_epoch_distance_sec", "p95"):.1f}',
+            f'{_nonnegative(orbit_summary, "minimum_epoch_distance_sec", "p95"):.1f}',
         ),
     ]
     lines = [
