@@ -116,3 +116,6 @@ def test_rejects_invalid_epoch_distance():
 
     annotation = _annotation(False, 1, 1, 1, float("nan"))
     _assert_invalid(annotation, "minimum_epoch_distance_sec must be finite")
+
+    annotation = _annotation(False, 1, 1, 1, -0.001)
+    _assert_invalid(annotation, "minimum_epoch_distance_sec must be nonnegative")
