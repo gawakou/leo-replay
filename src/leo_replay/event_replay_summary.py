@@ -168,6 +168,15 @@ def summarize_event_files(paths: Iterable[Path]) -> dict[str, Any]:
     return summarize_event_documents(documents)
 
 
+def _reject_output_input_collision(inputs: Iterable[Path], output: Path | None) -> None:
+    if output is None:
+        return
+    output_path = output.resolve()
+    for input_path in inputs:
+        if input_path.resolve() == output_path:
+            raise ValueError(f"output path must differ from input path: {input_path}")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Aggregate repeated LEO-Replay event-replay evaluations for paper reporting."
@@ -176,6 +185,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, help="write summary JSON to this path")
     args = parser.parse_args(argv)
 
+    _reject_output_input_collision(args.inputs, args.output)
     summary = summarize_event_files(args.inputs)
     rendered = json.dumps(summary, indent=2, sort_keys=True) + "\n"
     if args.output:
