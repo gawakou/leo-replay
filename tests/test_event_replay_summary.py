@@ -76,6 +76,24 @@ def test_cli_rejects_output_input_collision(tmp_path: Path):
     assert source.read_text(encoding="utf-8") == original
 
 
+def test_cli_rejects_duplicate_input_paths(tmp_path: Path):
+    source = tmp_path / "event.json"
+    output = tmp_path / "summary.json"
+    source.write_text(
+        json.dumps({"evaluation_type": "event_replay", "events": [_event(True, True, 0.02, 3.0)]}),
+        encoding="utf-8",
+    )
+
+    try:
+        main([str(source), str(tmp_path / "." / "event.json"), "--output", str(output)])
+    except ValueError as exc:
+        assert "duplicate input path is not allowed" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+    assert not output.exists()
+
+
 def test_rejects_non_event_evaluation():
     try:
         summarize_event_documents([{"evaluation_type": "profile", "events": []}])

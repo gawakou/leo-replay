@@ -87,6 +87,29 @@ def test_cli_rejects_output_input_collision(tmp_path: Path):
     assert source.read_text(encoding="utf-8") == original
 
 
+def test_cli_rejects_duplicate_input_paths(tmp_path: Path):
+    source = tmp_path / "orbit-context.json"
+    output = tmp_path / "summary.json"
+    source.write_text(
+        json.dumps(
+            {
+                "annotation_type": "event_orbit_context",
+                "annotations": [_annotation(True, 1, 1, 2, 30.0)],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    try:
+        main([str(source), str(tmp_path / "." / "orbit-context.json"), "--output", str(output)])
+    except ValueError as exc:
+        assert "duplicate input path is not allowed" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+    assert not output.exists()
+
+
 def test_rejects_non_orbit_context_input():
     try:
         summarize_orbit_context_documents([{"annotation_type": "other", "annotations": []}])
