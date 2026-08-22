@@ -61,6 +61,21 @@ def test_cli_writes_json(tmp_path: Path):
     assert summary["errors"]["rtt_mae_ms"]["p95_abs"] == 3.0
 
 
+def test_cli_rejects_output_input_collision(tmp_path: Path):
+    source = tmp_path / "event.json"
+    original = json.dumps({"evaluation_type": "event_replay", "events": [_event(True, True, 0.02, 3.0)]})
+    source.write_text(original, encoding="utf-8")
+
+    try:
+        main([str(source), "--output", str(tmp_path / "." / "event.json")])
+    except ValueError as exc:
+        assert "output path must differ from input path" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+    assert source.read_text(encoding="utf-8") == original
+
+
 def test_rejects_non_event_evaluation():
     try:
         summarize_event_documents([{"evaluation_type": "profile", "events": []}])
