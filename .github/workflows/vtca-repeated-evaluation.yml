@@ -86,5 +86,7 @@ jobs:
         with:
           name: vtca-repeated-evaluation-${{ inputs.repetitions }}x
           path: evaluation-results/
-          if-no-files-found: error
+          # If the evaluation failed before creating output, preserve the
+          # original failing step instead of replacing it with an upload error.
+          if-no-files-found: warn
           retention-days: 30
