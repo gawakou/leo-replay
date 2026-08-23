@@ -71,6 +71,16 @@ if [[ -n "${UNTRACKED_RUNTIME_FILES}" ]]; then
     exit 2
 fi
 
+GIT_COMMIT="$(git -C "${REPOSITORY_ROOT}" rev-parse HEAD 2>/dev/null || printf unknown)"
+# On GitHub Actions, bind the evaluation artifact to the exact workflow
+# revision. A mismatch means checkout/provenance no longer describes the code
+# that is about to produce the paper-facing result.
+if [[ "${GITHUB_ACTIONS:-false}" == "true" && -n "${GITHUB_SHA:-}" && "${GITHUB_SHA}" != "${GIT_COMMIT}" ]]; then
+    printf 'GitHub Actions revision does not match checked-out Git commit: GITHUB_SHA=%s git_commit=%s\n' \
+        "${GITHUB_SHA}" "${GIT_COMMIT}" >&2
+    exit 2
+fi
+
 if [[ "${OUTPUT_ROOT}" != /* ]]; then
     OUTPUT_ROOT="${REPOSITORY_ROOT}/${OUTPUT_ROOT}"
 fi
@@ -121,7 +131,7 @@ require_artifact() {
     printf 'collected_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     printf 'backend=%s\n' "${BACKEND}"
     printf 'repetitions=%s\n' "${REPETITIONS}"
-    printf 'git_commit=%s\n' "$(git -C "${REPOSITORY_ROOT}" rev-parse HEAD 2>/dev/null || printf unknown)"
+    printf 'git_commit=%s\n' "${GIT_COMMIT}"
     printf 'git_tracked_worktree_clean=yes\n'
     printf 'git_runtime_untracked_clean=yes\n'
     printf 'leo_replay=%s\n' "$(PYTHONPATH="${REPOSITORY_ROOT}/src" python3 -c 'import leo_replay; print(leo_replay.__version__)')"
@@ -132,6 +142,15 @@ require_artifact() {
     printf 'tc=%s\n' "$(first_version_line tc -V)"
     printf 'iperf3=%s\n' "$(first_version_line iperf3 --version)"
     printf 'ping=%s\n' "$(first_version_line ping -V)"
+    printf 'github_actions=%s\n' "${GITHUB_ACTIONS:-false}"
+    if [[ "${GITHUB_ACTIONS:-false}" == "true" ]]; then
+        printf 'github_workflow=%s\n' "${GITHUB_WORKFLOW:-unknown}"
+        printf 'github_run_id=%s\n' "${GITHUB_RUN_ID:-unknown}"
+        printf 'github_run_attempt=%s\n' "${GITHUB_RUN_ATTEMPT:-unknown}"
+        printf 'github_job=%s\n' "${GITHUB_JOB:-unknown}"
+        printf 'github_ref=%s\n' "${GITHUB_REF:-unknown}"
+        printf 'github_sha=%s\n' "${GITHUB_SHA:-unknown}"
+    fi
 } > "${RESULT_DIR}/environment.txt"
 
 for ((run = 1; run <= REPETITIONS; run++)); do
