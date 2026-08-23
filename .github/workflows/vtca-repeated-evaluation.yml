@@ -51,6 +51,15 @@ jobs:
           PYTHONPATH=src python3 -m leo_replay.evaluation_manifest verify "${result_dir}"
           cat "${result_dir}/summary.json"
 
+      - name: Upload 3x preflight smoke artifacts
+        if: always() && inputs.repetitions == '30'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vtca-preflight-smoke-3x
+          path: evaluation-smoke/
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Run repeated Docker evaluation
         run: |
           bash experiments/run_repeated_lab.sh \
