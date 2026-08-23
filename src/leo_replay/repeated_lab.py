@@ -139,6 +139,11 @@ def _load_execution(path: Path) -> list[dict[str, Any]]:
             raise RepeatedLabError(
                 f"execution record at {path}:{line_number} has invalid action {action!r}"
             )
+        event_id = record.get("event_id")
+        if event_id is not None and (not isinstance(event_id, str) or not event_id.strip()):
+            raise RepeatedLabError(
+                f"execution record at {path}:{line_number} has invalid event_id {event_id!r}"
+            )
         lateness = _finite_timing_field(record, "lateness_ms", path, line_number)
         planned_sec = _finite_timing_field(record, "planned_sec", path, line_number)
         applied_sec = _finite_timing_field(record, "applied_sec", path, line_number)
@@ -156,7 +161,7 @@ def _load_execution(path: Path) -> list[dict[str, Any]]:
                 "planned_sec": planned_sec,
                 "applied_sec": applied_sec,
                 "action": action,
-                "event_id": record.get("event_id"),
+                "event_id": event_id,
             }
         )
     if not records:
