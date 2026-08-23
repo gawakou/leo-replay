@@ -34,23 +34,12 @@ def create_evaluation_manifest(root: Path) -> dict[str, object]:
 
     files = []
     for path in iter_artifacts(root):
-        files.append(
-            {
-                "path": path.relative_to(root).as_posix(),
-                "sha256": sha256_file(path),
-                "size_bytes": path.stat().st_size,
-            }
-        )
+        if path.is_symlink():
+            raise ValueError(f"evaluation artifacts must not be symbolic links: {path.relative_to(root).as_posix()}")
+        files.append({"path": path.relative_to(root).as_posix(), "sha256": sha256_file(path), "size_bytes": path.stat().st_size})
 
-    manifest: dict[str, object] = {
-        "schema_version": SCHEMA_VERSION,
-        "kind": MANIFEST_KIND,
-        "files": files,
-    }
-    (root / MANIFEST_NAME).write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    manifest: dict[str, object] = {"schema_version": SCHEMA_VERSION, "kind": MANIFEST_KIND, "files": files}
+    (root / MANIFEST_NAME).write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return manifest
 
 
@@ -70,7 +59,6 @@ def verify_evaluation_manifest(root: Path) -> list[str]:
     manifest_path = root / MANIFEST_NAME
     if not manifest_path.exists():
         return [f"{MANIFEST_NAME} is missing"]
-
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -81,7 +69,6 @@ def verify_evaluation_manifest(root: Path) -> list[str]:
         errors.append(f"unsupported manifest schema_version: {manifest.get('schema_version')!r}")
     if manifest.get("kind") != MANIFEST_KIND:
         errors.append(f"unexpected manifest kind: {manifest.get('kind')!r}")
-
     entries = manifest.get("files")
     if not isinstance(entries, list):
         errors.append("manifest files must be a list")
@@ -105,7 +92,6 @@ def verify_evaluation_manifest(root: Path) -> list[str]:
             errors.append(f"duplicate manifest path: {relative}")
             continue
         expected_paths.add(relative)
-
         metadata_valid = True
         if not isinstance(expected_hash, str) or not _valid_sha256(expected_hash):
             errors.append(f"invalid sha256: {relative}")
@@ -117,6 +103,9 @@ def verify_evaluation_manifest(root: Path) -> list[str]:
             continue
 
         path = root / relative
+        if path.is_symlink():
+            errors.append(f"symbolic link artifact is not allowed: {relative}")
+            continue
         if not path.is_file():
             errors.append(f"missing file: {relative}")
             continue
@@ -134,19 +123,15 @@ def verify_evaluation_manifest(root: Path) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Create or verify a LEO-Replay evaluation artifact manifest")
     subparsers = parser.add_subparsers(dest="command", required=True)
-
     create_parser = subparsers.add_parser("create", help="create a deterministic SHA-256 manifest")
     create_parser.add_argument("directory", type=Path)
-
     verify_parser = subparsers.add_parser("verify", help="verify files against the saved manifest")
     verify_parser.add_argument("directory", type=Path)
-
     args = parser.parse_args(argv)
     if args.command == "create":
         manifest = create_evaluation_manifest(args.directory)
         print(json.dumps(manifest, ensure_ascii=False, indent=2))
         return 0
-
     errors = verify_evaluation_manifest(args.directory)
     if errors:
         for error in errors:
