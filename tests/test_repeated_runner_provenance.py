@@ -19,6 +19,14 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _local_runner_env() -> dict[str, str]:
+    """Return an environment that does not inherit the outer Actions revision."""
+    env = os.environ.copy()
+    env.pop("GITHUB_ACTIONS", None)
+    env.pop("GITHUB_SHA", None)
+    return env
+
+
 def _prepare_repo(tmp_path: Path) -> tuple[Path, Path]:
     repo = tmp_path / "repo"
     experiments = repo / "experiments"
@@ -49,6 +57,7 @@ def test_repeated_runner_rejects_tracked_worktree_changes(tmp_path: Path, staged
         capture_output=True,
         text=True,
         timeout=20,
+        env=_local_runner_env(),
     )
 
     assert result.returncode == 2
@@ -67,6 +76,7 @@ def test_repeated_runner_rejects_untracked_runtime_files(tmp_path: Path):
         capture_output=True,
         text=True,
         timeout=20,
+        env=_local_runner_env(),
     )
 
     assert result.returncode == 2
@@ -77,7 +87,7 @@ def test_repeated_runner_rejects_untracked_runtime_files(tmp_path: Path):
 
 def test_repeated_runner_rejects_actions_revision_mismatch(tmp_path: Path):
     repo, _ = _prepare_repo(tmp_path)
-    env = os.environ.copy()
+    env = _local_runner_env()
     env["GITHUB_ACTIONS"] = "true"
     env["GITHUB_SHA"] = "0" * 40
 
@@ -109,7 +119,7 @@ def test_repeated_runner_rejects_existing_result_directory(tmp_path: Path):
         encoding="utf-8",
     )
     fake_date.chmod(0o755)
-    env = os.environ.copy()
+    env = _local_runner_env()
     env["PATH"] = f"{fake_bin}:{env['PATH']}"
 
     result = subprocess.run(
