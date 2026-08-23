@@ -134,6 +134,11 @@ def _load_execution(path: Path) -> list[dict[str, Any]]:
         direction = record.get("direction")
         if direction not in {"forward", "reverse"}:
             raise RepeatedLabError(f"unknown direction {direction!r} at {path}:{line_number}")
+        action = record.get("action")
+        if not isinstance(action, str) or not action.strip():
+            raise RepeatedLabError(
+                f"execution record at {path}:{line_number} has invalid action {action!r}"
+            )
         lateness = _finite_timing_field(record, "lateness_ms", path, line_number)
         planned_sec = _finite_timing_field(record, "planned_sec", path, line_number)
         applied_sec = _finite_timing_field(record, "applied_sec", path, line_number)
@@ -150,7 +155,7 @@ def _load_execution(path: Path) -> list[dict[str, Any]]:
                 "lateness_ms": lateness,
                 "planned_sec": planned_sec,
                 "applied_sec": applied_sec,
-                "action": str(record.get("action", "")),
+                "action": action,
                 "event_id": record.get("event_id"),
             }
         )
