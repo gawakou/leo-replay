@@ -144,6 +144,11 @@ def _load_execution(path: Path) -> list[dict[str, Any]]:
             raise RepeatedLabError(
                 f"execution record at {path}:{line_number} has invalid event_id {event_id!r}"
             )
+        device = record.get("device")
+        if device is not None and (not isinstance(device, str) or not device.strip()):
+            raise RepeatedLabError(
+                f"execution record at {path}:{line_number} has invalid device {device!r}"
+            )
         lateness = _finite_timing_field(record, "lateness_ms", path, line_number)
         planned_sec = _finite_timing_field(record, "planned_sec", path, line_number)
         applied_sec = _finite_timing_field(record, "applied_sec", path, line_number)
@@ -162,6 +167,7 @@ def _load_execution(path: Path) -> list[dict[str, Any]]:
                 "applied_sec": applied_sec,
                 "action": action,
                 "event_id": event_id,
+                "device": device,
             }
         )
     if not records:
@@ -170,7 +176,7 @@ def _load_execution(path: Path) -> list[dict[str, Any]]:
 
 
 def _pair_skews(path: Path, records: list[dict[str, Any]]) -> list[float]:
-    pairs: dict[tuple[str, str, float], dict[str, float]] = {}
+    pairs: dict[tuple[str, str, float], dict[str, tuple[float, str | None]]] = {}
     for record in records:
         key = (
             str(record["action"]),
@@ -181,13 +187,27 @@ def _pair_skews(path: Path, records: list[dict[str, Any]]) -> list[float]:
         pair = pairs.setdefault(key, {})
         if direction in pair:
             raise RepeatedLabError(f"duplicate {direction} application for {key!r} in {path}")
-        pair[direction] = float(record["applied_sec"])
+        pair[direction] = (
+            float(record["applied_sec"]),
+            None if record.get("device") is None else str(record["device"]),
+        )
 
     skews: list[float] = []
     for key, pair in pairs.items():
         if set(pair) != {"forward", "reverse"}:
             raise RepeatedLabError(f"incomplete forward/reverse application pair {key!r} in {path}")
-        skews.append(abs(pair["reverse"] - pair["forward"]) * 1000.0)
+        forward_applied, forward_device = pair["forward"]
+        reverse_applied, reverse_device = pair["reverse"]
+        if (
+            forward_device is not None
+            and reverse_device is not None
+            and forward_device == reverse_device
+        ):
+            raise RepeatedLabError(
+                f"forward/reverse application pair {key!r} targets the same device "
+                f"{forward_device!r} in {path}"
+            )
+        skews.append(abs(reverse_applied - forward_applied) * 1000.0)
     return skews
 
 
