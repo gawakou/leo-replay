@@ -97,3 +97,28 @@ def test_evaluation_manifest_verify_rejects_symlinked_artifact(tmp_path: Path) -
     (tmp_path / MANIFEST_NAME).write_text(json.dumps(manifest) + "\n", encoding="utf-8")
 
     assert verify_evaluation_manifest(tmp_path) == ["symbolic link artifact is not allowed: linked-artifact.txt"]
+
+
+def test_evaluation_manifest_create_rejects_broken_symlink(tmp_path: Path) -> None:
+    (tmp_path / "broken-artifact.txt").symlink_to(tmp_path.parent / "missing-artifact.txt")
+
+    with pytest.raises(ValueError, match="must not be symbolic links: broken-artifact.txt"):
+        create_evaluation_manifest(tmp_path)
+
+
+def test_evaluation_manifest_verify_rejects_untracked_broken_symlink(tmp_path: Path) -> None:
+    (tmp_path / "summary.json").write_text("{}\n", encoding="utf-8")
+    create_evaluation_manifest(tmp_path)
+    (tmp_path / "broken-artifact.txt").symlink_to(tmp_path.parent / "missing-artifact.txt")
+
+    assert verify_evaluation_manifest(tmp_path) == ["symbolic link artifact is not allowed: broken-artifact.txt"]
+
+
+def test_evaluation_manifest_rejects_symlinked_manifest_path(tmp_path: Path) -> None:
+    outside = tmp_path.parent / "outside-manifest.json"
+    outside.write_text("{}\n", encoding="utf-8")
+    (tmp_path / MANIFEST_NAME).symlink_to(outside)
+
+    with pytest.raises(ValueError, match="evaluation-manifest.json must not be a symbolic link"):
+        create_evaluation_manifest(tmp_path)
+    assert verify_evaluation_manifest(tmp_path) == ["evaluation-manifest.json must not be a symbolic link"]
