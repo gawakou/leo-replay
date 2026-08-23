@@ -3,9 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from leo_replay.evaluation_manifest import (
     MANIFEST_NAME,
     create_evaluation_manifest,
+    sha256_file,
     verify_evaluation_manifest,
 )
 
@@ -33,7 +36,6 @@ def test_evaluation_manifest_detects_untracked_file(tmp_path: Path) -> None:
     (tmp_path / "summary.json").write_text("{}\n", encoding="utf-8")
     create_evaluation_manifest(tmp_path)
     (tmp_path / "late-note.txt").write_text("changed after collection\n", encoding="utf-8")
-
     assert verify_evaluation_manifest(tmp_path) == ["untracked file: late-note.txt"]
 
 
@@ -44,7 +46,6 @@ def test_evaluation_manifest_rejects_path_escape(tmp_path: Path) -> None:
     manifest = create_evaluation_manifest(tmp_path)
     manifest["files"][0]["path"] = "../outside.txt"
     (tmp_path / MANIFEST_NAME).write_text(json.dumps(manifest) + "\n", encoding="utf-8")
-
     errors = verify_evaluation_manifest(tmp_path)
     assert "unsafe manifest path: ../outside.txt" in errors
     assert "untracked file: summary.json" in errors
@@ -55,7 +56,6 @@ def test_evaluation_manifest_rejects_duplicate_paths(tmp_path: Path) -> None:
     manifest = create_evaluation_manifest(tmp_path)
     manifest["files"].append(dict(manifest["files"][0]))
     (tmp_path / MANIFEST_NAME).write_text(json.dumps(manifest) + "\n", encoding="utf-8")
-
     assert verify_evaluation_manifest(tmp_path) == ["duplicate manifest path: summary.json"]
 
 
@@ -67,10 +67,33 @@ def test_evaluation_manifest_rejects_invalid_schema_and_file_metadata(tmp_path: 
     manifest["files"][0]["sha256"] = "not-a-sha256"
     manifest["files"][0]["size_bytes"] = -1
     (tmp_path / MANIFEST_NAME).write_text(json.dumps(manifest) + "\n", encoding="utf-8")
-
     assert verify_evaluation_manifest(tmp_path) == [
         "unsupported manifest schema_version: '9.9'",
         "unexpected manifest kind: 'other-artifacts'",
         "invalid sha256: summary.json",
         "invalid size_bytes: summary.json",
     ]
+
+
+def test_evaluation_manifest_create_rejects_symlinked_artifact(tmp_path: Path) -> None:
+    target = tmp_path.parent / "outside-artifact.txt"
+    target.write_text("outside evaluation root\n", encoding="utf-8")
+    (tmp_path / "linked-artifact.txt").symlink_to(target)
+
+    with pytest.raises(ValueError, match="must not be symbolic links: linked-artifact.txt"):
+        create_evaluation_manifest(tmp_path)
+
+
+def test_evaluation_manifest_verify_rejects_symlinked_artifact(tmp_path: Path) -> None:
+    target = tmp_path.parent / "outside-artifact.txt"
+    target.write_text("outside evaluation root\n", encoding="utf-8")
+    linked = tmp_path / "linked-artifact.txt"
+    linked.symlink_to(target)
+    manifest = {
+        "schema_version": "1.0",
+        "kind": "leo-replay-evaluation-artifacts",
+        "files": [{"path": "linked-artifact.txt", "sha256": sha256_file(linked), "size_bytes": linked.stat().st_size}],
+    }
+    (tmp_path / MANIFEST_NAME).write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+
+    assert verify_evaluation_manifest(tmp_path) == ["symbolic link artifact is not allowed: linked-artifact.txt"]
