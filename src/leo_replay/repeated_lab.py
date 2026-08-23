@@ -198,6 +198,10 @@ def _pair_skews(path: Path, records: list[dict[str, Any]]) -> list[float]:
             raise RepeatedLabError(f"incomplete forward/reverse application pair {key!r} in {path}")
         forward_applied, forward_device = pair["forward"]
         reverse_applied, reverse_device = pair["reverse"]
+        if (forward_device is None) != (reverse_device is None):
+            raise RepeatedLabError(
+                f"forward/reverse application pair {key!r} has asymmetric device metadata in {path}"
+            )
         if (
             forward_device is not None
             and reverse_device is not None
