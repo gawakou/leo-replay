@@ -29,6 +29,28 @@ jobs:
           docker version
           docker compose version
 
+      - name: Run 3x preflight smoke before 30x paper evaluation
+        if: inputs.repetitions == '30'
+        run: |
+          bash experiments/run_repeated_lab.sh \
+            --backend docker \
+            --repetitions 3 \
+            --output evaluation-smoke
+
+      - name: Verify 3x preflight smoke
+        if: inputs.repetitions == '30'
+        run: |
+          set -Eeuo pipefail
+          shopt -s nullglob
+          manifests=(evaluation-smoke/docker-*/evaluation-manifest.json)
+          if (( ${#manifests[@]} != 1 )); then
+            printf 'expected exactly one smoke evaluation manifest, found %d\n' "${#manifests[@]}" >&2
+            exit 2
+          fi
+          result_dir="$(dirname "${manifests[0]}")"
+          PYTHONPATH=src python3 -m leo_replay.evaluation_manifest verify "${result_dir}"
+          cat "${result_dir}/summary.json"
+
       - name: Run repeated Docker evaluation
         run: |
           bash experiments/run_repeated_lab.sh \
