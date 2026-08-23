@@ -1,0 +1,59 @@
+name: VTCA repeated evaluation
+
+on:
+  workflow_dispatch:
+    inputs:
+      repetitions:
+        description: Number of repeated lab runs
+        required: true
+        default: "3"
+        type: choice
+        options:
+          - "3"
+          - "30"
+
+permissions:
+  contents: read
+
+jobs:
+  repeated-evaluation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Show evaluation revision
+        run: |
+          git rev-parse HEAD
+          python3 --version
+          docker version
+          docker compose version
+
+      - name: Run repeated Docker evaluation
+        run: |
+          bash experiments/run_repeated_lab.sh \
+            --backend docker \
+            --repetitions "${{ inputs.repetitions }}" \
+            --output evaluation-results
+
+      - name: Verify evaluation manifests
+        run: |
+          set -Eeuo pipefail
+          shopt -s nullglob
+          manifests=(evaluation-results/docker-*/evaluation-manifest.json)
+          if (( ${#manifests[@]} != 1 )); then
+            printf 'expected exactly one evaluation manifest, found %d\n' "${#manifests[@]}" >&2
+            exit 2
+          fi
+          result_dir="$(dirname "${manifests[0]}")"
+          PYTHONPATH=src python3 -m leo_replay.evaluation_manifest verify "${result_dir}"
+          cat "${result_dir}/summary.json"
+
+      - name: Upload compact evaluation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vtca-repeated-evaluation-${{ inputs.repetitions }}x
+          path: evaluation-results/
+          if-no-files-found: error
+          retention-days: 30
