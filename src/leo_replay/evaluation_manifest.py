@@ -22,15 +22,20 @@ def sha256_file(path: Path) -> str:
 
 def iter_artifacts(root: Path) -> Iterable[Path]:
     for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.name == MANIFEST_NAME:
+        if path.name == MANIFEST_NAME:
             continue
-        yield path
+        if path.is_symlink() or path.is_file():
+            yield path
 
 
 def create_evaluation_manifest(root: Path) -> dict[str, object]:
     root = root.resolve()
     if not root.is_dir():
         raise ValueError(f"evaluation directory does not exist: {root}")
+
+    manifest_path = root / MANIFEST_NAME
+    if manifest_path.is_symlink():
+        raise ValueError(f"{MANIFEST_NAME} must not be a symbolic link")
 
     files = []
     for path in iter_artifacts(root):
@@ -39,7 +44,7 @@ def create_evaluation_manifest(root: Path) -> dict[str, object]:
         files.append({"path": path.relative_to(root).as_posix(), "sha256": sha256_file(path), "size_bytes": path.stat().st_size})
 
     manifest: dict[str, object] = {"schema_version": SCHEMA_VERSION, "kind": MANIFEST_KIND, "files": files}
-    (root / MANIFEST_NAME).write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return manifest
 
 
@@ -57,6 +62,8 @@ def _valid_sha256(value: str) -> bool:
 def verify_evaluation_manifest(root: Path) -> list[str]:
     root = root.resolve()
     manifest_path = root / MANIFEST_NAME
+    if manifest_path.is_symlink():
+        return [f"{MANIFEST_NAME} must not be a symbolic link"]
     if not manifest_path.exists():
         return [f"{MANIFEST_NAME} is missing"]
     try:
@@ -116,7 +123,11 @@ def verify_evaluation_manifest(root: Path) -> list[str]:
 
     actual_paths = {path.relative_to(root).as_posix() for path in iter_artifacts(root)}
     for relative in sorted(actual_paths - expected_paths):
-        errors.append(f"untracked file: {relative}")
+        path = root / relative
+        if path.is_symlink():
+            errors.append(f"symbolic link artifact is not allowed: {relative}")
+        else:
+            errors.append(f"untracked file: {relative}")
     return errors
 
 
