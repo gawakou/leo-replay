@@ -75,6 +75,26 @@ def test_repeated_runner_rejects_untracked_runtime_files(tmp_path: Path):
     assert "fixed-condition" not in result.stdout
 
 
+def test_repeated_runner_rejects_actions_revision_mismatch(tmp_path: Path):
+    repo, _ = _prepare_repo(tmp_path)
+    env = os.environ.copy()
+    env["GITHUB_ACTIONS"] = "true"
+    env["GITHUB_SHA"] = "0" * 40
+
+    result = subprocess.run(
+        ["bash", str(repo / "experiments/run_repeated_lab.sh"), "--repetitions", "1"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        timeout=20,
+        env=env,
+    )
+
+    assert result.returncode == 2
+    assert "GitHub Actions revision does not match checked-out Git commit" in result.stderr
+    assert "fixed-condition" not in result.stdout
+
+
 def test_repeated_runner_rejects_existing_result_directory(tmp_path: Path):
     repo, _ = _prepare_repo(tmp_path)
     output_root = tmp_path / "results"
