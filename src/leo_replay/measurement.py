@@ -132,8 +132,28 @@ def create_measurement_manifest(
     command_result: CommandResult,
     data_files: Iterable[Path],
 ) -> dict[str, object]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if output_dir.is_symlink():
+        raise ValueError("measurement output directory must not be a symbolic link")
+    output_dir_resolved = output_dir.resolve()
+    manifest_path = output_dir / "manifest.json"
+    if manifest_path.is_symlink():
+        raise ValueError("manifest.json must not be a symbolic link")
+
     files = []
+    seen_names: set[str] = set()
     for path in sorted(data_files, key=lambda item: item.name):
+        if path.is_symlink():
+            raise ValueError(f"measurement artifact must not be a symbolic link: {path.name}")
+        if not path.exists() or not path.is_file():
+            raise ValueError(f"measurement artifact must be a regular file: {path.name}")
+        if path.parent.resolve() != output_dir_resolved:
+            raise ValueError(f"measurement artifact must be inside output directory: {path.name}")
+        if path.name == "manifest.json":
+            raise ValueError("manifest.json cannot be listed as a measurement artifact")
+        if path.name in seen_names:
+            raise ValueError(f"duplicate measurement artifact name: {path.name}")
+        seen_names.add(path.name)
         files.append(
             {
                 "name": path.name,
@@ -151,8 +171,7 @@ def create_measurement_manifest(
         "returncode": command_result.returncode,
         "files": files,
     }
-    output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "manifest.json").write_text(
+    manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
