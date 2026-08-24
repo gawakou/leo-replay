@@ -66,3 +66,30 @@ def test_nonempty_output_directory_is_rejected(tmp_path: Path) -> None:
         "ping", "--target", "127.0.0.1", "--count", "1",
         "--output-dir", str(output),
     ]) == 2
+
+
+def test_blank_target_is_rejected_before_capture(tmp_path: Path, monkeypatch) -> None:
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("capture command must not run for a blank target")
+
+    monkeypatch.setattr(measure_cli, "run_command", fail_if_called)
+    output = tmp_path / "blank-target"
+    assert measure_cli.main([
+        "ping", "--target", "   ", "--count", "1",
+        "--output-dir", str(output),
+    ]) == 2
+    assert not output.exists()
+
+
+def test_nonpositive_timeout_is_rejected_before_capture(tmp_path: Path, monkeypatch) -> None:
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("capture command must not run for an invalid timeout")
+
+    monkeypatch.setattr(measure_cli, "run_command", fail_if_called)
+    for command in ("ping", "traceroute"):
+        output = tmp_path / command
+        assert measure_cli.main([
+            command, "--target", "127.0.0.1", "--timeout-sec", "0",
+            "--output-dir", str(output),
+        ]) == 2
+        assert not output.exists()
