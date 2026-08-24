@@ -56,7 +56,15 @@ def _require_tool(name: str) -> str:
     return path
 
 
+def _validate_capture_args(*, target: str, timeout_sec: float) -> None:
+    if not target.strip():
+        raise ValueError("--target must not be empty")
+    if timeout_sec <= 0:
+        raise ValueError("--timeout-sec must be > 0")
+
+
 def capture_ping(args: argparse.Namespace) -> int:
+    _validate_capture_args(target=args.target, timeout_sec=args.timeout_sec)
     if args.count <= 0:
         raise ValueError("--count must be > 0")
     if args.interval_sec <= 0:
@@ -93,6 +101,7 @@ def capture_ping(args: argparse.Namespace) -> int:
 
 
 def capture_traceroute(args: argparse.Namespace) -> int:
+    _validate_capture_args(target=args.target, timeout_sec=args.timeout_sec)
     if args.max_hops <= 0:
         raise ValueError("--max-hops must be > 0")
     if args.wait_sec <= 0:
