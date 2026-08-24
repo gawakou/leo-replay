@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from leo_replay.measurement import (
     CommandResult,
     PingSample,
@@ -44,10 +46,8 @@ traceroute to example.net (192.0.2.1), 30 hops max
     ]
 
 
-def _write_valid_snapshot(tmp_path: Path) -> Path:
-    ping_path = tmp_path / "ping.csv"
-    write_ping_csv(ping_path, [PingSample(sequence=0, rtt_ms=1.25, timeout=False, raw="ok")])
-    result = CommandResult(
+def _command_result() -> CommandResult:
+    return CommandResult(
         command=["ping", "example.net"],
         started_at_utc="2026-08-19T00:00:00Z",
         finished_at_utc="2026-08-19T00:00:01Z",
@@ -55,14 +55,71 @@ def _write_valid_snapshot(tmp_path: Path) -> Path:
         stdout="",
         stderr="",
     )
+
+
+def _write_valid_snapshot(tmp_path: Path) -> Path:
+    ping_path = tmp_path / "ping.csv"
+    write_ping_csv(ping_path, [PingSample(sequence=0, rtt_ms=1.25, timeout=False, raw="ok")])
     create_measurement_manifest(
         tmp_path,
         kind="ping",
         target="example.net",
-        command_result=result,
+        command_result=_command_result(),
         data_files=[ping_path],
     )
     return ping_path
+
+
+def test_manifest_creation_rejects_external_artifact(tmp_path: Path) -> None:
+    output_dir = tmp_path / "snapshot"
+    output_dir.mkdir()
+    outside = tmp_path / "outside.csv"
+    outside.write_text("sample\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="inside output directory"):
+        create_measurement_manifest(
+            output_dir,
+            kind="ping",
+            target="example.net",
+            command_result=_command_result(),
+            data_files=[outside],
+        )
+
+    assert not (output_dir / "manifest.json").exists()
+
+
+def test_manifest_creation_rejects_symlinked_artifact(tmp_path: Path) -> None:
+    real_path = tmp_path / "real.csv"
+    real_path.write_text("sample\n", encoding="utf-8")
+    link_path = tmp_path / "ping.csv"
+    link_path.symlink_to(real_path.name)
+
+    with pytest.raises(ValueError, match="must not be a symbolic link"):
+        create_measurement_manifest(
+            tmp_path,
+            kind="ping",
+            target="example.net",
+            command_result=_command_result(),
+            data_files=[link_path],
+        )
+
+    assert not (tmp_path / "manifest.json").exists()
+
+
+def test_manifest_creation_rejects_duplicate_artifact_name(tmp_path: Path) -> None:
+    ping_path = tmp_path / "ping.csv"
+    ping_path.write_text("sample\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate measurement artifact name"):
+        create_measurement_manifest(
+            tmp_path,
+            kind="ping",
+            target="example.net",
+            command_result=_command_result(),
+            data_files=[ping_path, ping_path],
+        )
+
+    assert not (tmp_path / "manifest.json").exists()
 
 
 def test_manifest_verification_detects_tampering(tmp_path: Path) -> None:
@@ -71,19 +128,11 @@ def test_manifest_verification_detects_tampering(tmp_path: Path) -> None:
     write_ping_csv(ping_path, [PingSample(sequence=0, rtt_ms=1.25, timeout=False, raw="ok")])
     write_traceroute_json(trace_path, [TracerouteHop(hop=1, raw="1 192.0.2.1 1 ms")])
 
-    result = CommandResult(
-        command=["ping", "example.net"],
-        started_at_utc="2026-08-19T00:00:00Z",
-        finished_at_utc="2026-08-19T00:00:01Z",
-        returncode=0,
-        stdout="",
-        stderr="",
-    )
     create_measurement_manifest(
         tmp_path,
         kind="ping",
         target="example.net",
-        command_result=result,
+        command_result=_command_result(),
         data_files=[ping_path, trace_path],
     )
     assert verify_measurement_snapshot(tmp_path) == []
