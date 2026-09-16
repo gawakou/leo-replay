@@ -1,65 +1,84 @@
-# leo-replay
+# LEO-Replay
 
-Starlinkを含む低軌道衛星（LEO）通信の**実測データに基づく通信挙動再現基盤**です。ping、iperf3、端末状態ログを時系列またはイベントプロファイルへ変換し、Linuxルータ上の `tc` / `netem` で再生して、同一条件下で通信方式を比較評価します。
+[English](README.md) | [日本語](README.ja.md)
 
-現在のリリースは **v0.5.0** です。v0.4.3の同期2D Map＋通信タイムラインに加え、ping／tracerouteのアクティブ計測、正規化スナップショット、SHA-256 manifest検証を備え、計測から再生・評価・論文用再現性までを一貫して扱えます。
+**LEO-Replay** is a measurement-driven replay platform for reproducing communication dynamics observed in low-Earth-orbit (LEO) satellite networks, including Starlink.
 
-> 研究用プロトタイプです。共同研究者・所属機関との確認が済むまではPrivate repositoryでの運用を推奨します。
+It converts measurements such as ping, iperf3, traceroute, and terminal-state logs into time-series or event-based replay profiles, and reproduces delay, loss, jitter, and rate conditions on a Linux router using `tc` / `netem`. The platform is designed for repeatable evaluation of communication mechanisms under the same observed or derived network conditions.
 
-## v0.5.0の主な機能
+The current release is **v0.5.0**. In addition to the synchronized 2D map and communication timeline introduced in v0.4.3, v0.5.0 provides active ping/traceroute measurement, normalized snapshots, SHA-256 manifest verification, bidirectional replay, and orbit-aware interpretation. These functions support an auditable workflow from measurement through replay, evaluation, and reproducibility.
 
-- `leo-replay-measure`によるping／tracerouteアクティブ計測
-- 計測結果の正規化スナップショットとSHA-256 manifest検証
-- causal／retrospective衛星直下点を同一2D Map上で比較表示
-- 時刻スライダ、再生・停止、キーボード操作による同期表示
-- RTT／遅延、スループット、損失、イベント帯の通信タイムライン
-- 観測地点、可視候補、仰角、位置差、stale／warning flagの表示
-- CSS・JavaScript・地図形状・データを埋め込んだ自己完結型HTML
-- 外部タイル、CDN、フォント、テレメトリを利用しないオフライン動作
-- 入力SHA-256と出力bundle manifestによる再検証
-- loopback既定の`viz serve`と非loopback bindの明示的許可
-- causal mode：観測時刻までに作成された軌道要素から最新の`CREATION_DATE`を選択
-- retrospective mode：観測時刻に対して絶対`EPOCH`距離が最小の要素を選択
-- causal／retrospective要素を同一時刻へSGP4伝搬し、位置差を感度指標として記録
-- WGS84の衛星直下点を出力し、同期Map比較表示へ接続
-- availability lag、stale判定、欠損`CREATION_DATE`の明示的除外・エラー制御
-- CelesTrakのCATNR／INTDES／GROUP／NAME／SPECIALによる現在GP取得
-- Space-TrackのGP／GP_History取得と環境変数による認証
-- NORAD IDリストの分割取得とrawレスポンス保持
-- request fingerprint、SHA-256、record countによるスナップショット検証
-- CelesTrakの2時間更新間隔を考慮した再利用・更新制御
-- OMM JSON／CSVおよび従来TLEのオフライン読込み
-- 軌道入力ファイルのSHA-256、取得時刻、要素epoch範囲を記録するprovenance manifest
-- 観測地点からの仰角・方位角・斜距離と可視候補CSVの生成
-- 軌道要素epochからの時間差とstale flag、SGP4 propagation errorの記録
-- Event Profile v1を変更しないbefore／during／after候補集合のannotation sidecar
-- 「可視候補」と「実接続衛星」を明確に分離するデータ意味論
-- `dual-egress`：2つのルータNICのegressを独立制御
-- `ifb`：1つの物理NICのegressと、IFBへredirectしたingressを独立制御
-- 双方向時系列プロファイルCSV
-- Event Profile v1の後方互換な`directions.forward/reverse`拡張
-- 従来のRTT・損失・帯域プロファイルを双方向形式へ変換する`profile directionalize`
-- RTTの等分、パス損失確率を保存する方向別損失分解、逆方向帯域の明示
-- 方向別の`tc`適用時刻、適用遅延、通信条件をJSON Linesへ記録
-- v0.1.0の時系列再生、v0.2.0のイベント再生との後方互換
-- Docker Composeによる3コンテナ双方向テストベッド
-- Linux network namespaceとvethによる双方向テストベッド
-- 固定遅延・帯域と方向別プロファイルの自動スモークテスト
-- ping、iperf3、direction-specific execution logの自動検証
+> **Research prototype.** This repository is publicly available to support research transparency and reproducibility. No open-source license has been assigned at this time. Unless otherwise stated, all rights are reserved by the copyright holders. See [License](#license) below.
 
-## 研究上の位置づけ
+## Key Features in v0.5.0
 
-従来の`delay_ms`はping RTTに由来する場合があり、片方向qdiscへそのまま適用すると往復遅延との対応が曖昧でした。v0.3.0では、実測から方向別値を直接得られない場合も、使用した分解規則を明示して双方向条件へ変換します。
+- Active ping/traceroute measurement with `leo-replay-measure`
+- Normalized measurement snapshots and SHA-256 manifest verification
+- Side-by-side visualization of causal and retrospective satellite subpoints on the same 2D map
+- Synchronized time slider, play/pause controls, and keyboard navigation
+- Communication timeline for RTT/delay, throughput, loss, and event intervals
+- Display of observation site, visible candidates, elevation, position differences, and stale/warning flags
+- Self-contained HTML bundles with embedded CSS, JavaScript, map geometry, and data
+- Offline operation without external map tiles, CDNs, fonts, or telemetry
+- Re-verification using input SHA-256 hashes and output bundle manifests
+- Loopback-only default for `viz serve`, with explicit opt-in for non-loopback binding
+- **Causal mode:** select the most recent orbital element by `CREATION_DATE` from elements available by the observation-time knowledge cutoff
+- **Retrospective mode:** select the element with the minimum absolute `EPOCH` distance from the observation time, including elements that became available later
+- Propagate causal and retrospective elements to the same time with SGP4 and record their position difference as a sensitivity indicator
+- Output WGS84 satellite subpoints for synchronized map comparison
+- Explicit handling of availability lag, stale-element detection, missing `CREATION_DATE`, and related errors
+- Current GP acquisition from CelesTrak using CATNR / INTDES / GROUP / NAME / SPECIAL queries
+- GP / GP_History acquisition from Space-Track using environment-variable authentication
+- Chunked acquisition by NORAD ID list with raw-response retention
+- Snapshot verification using request fingerprints, SHA-256 hashes, and record counts
+- Reuse/update control that accounts for CelesTrak's update interval
+- Offline import of OMM JSON / CSV and legacy TLE data
+- Provenance manifests recording orbital-input SHA-256, acquisition time, and element-epoch ranges
+- Visibility CSV generation with elevation, azimuth, slant range, and visible-candidate information from the observation site
+- Recording of element-age offsets, stale flags, and SGP4 propagation errors
+- Annotation sidecars for before/during/after candidate sets without modifying Event Profile v1
+- Explicit semantic separation between **geometrically visible candidates** and the **actual serving satellite**
+- `dual-egress`: independent control of egress on two router NICs
+- `ifb`: independent control of physical-NIC egress and IFB-redirected ingress
+- Bidirectional time-series profile CSVs
+- Backward-compatible `directions.forward/reverse` extension of Event Profile v1
+- `profile directionalize` for converting legacy RTT/loss/rate profiles into bidirectional profiles
+- Directional decomposition of RTT, end-to-end loss probability, and explicit reverse-path rate assumptions
+- JSON Lines execution logs containing directional `tc` application time, lateness, and applied conditions
+- Backward compatibility with v0.1.0 time-series replay and v0.2.0 event replay
+- Three-container bidirectional testbed using Docker Compose
+- Bidirectional testbed using Linux network namespaces and veth pairs
+- Automated smoke tests for fixed delay/rate conditions and directional profiles
+- Automated verification of ping, iperf3, and direction-specific execution logs
 
-既定値は次のとおりです。
+## Research Positioning
 
-- 遅延・ジッタ：forward/reverseへ50%ずつ分配
-- 損失：両方向通過後の損失確率が元の値と一致するよう分配
-- 帯域：実測スループットをforwardへ設定し、reverseは260 Mbit/s
+LEO-Replay focuses on **measurement-driven replay** rather than constellation-scale simulation.
 
-これらは**推定条件**であり、方向別実測値ではありません。方向別計測がある場合は、双方向プロファイルへ直接記録してください。
+Trace-driven replay, measurement-driven emulation, and Linux traffic shaping are established techniques. LEO-Replay does not claim novelty for those mechanisms in isolation. Its focus is an **auditable measurement-to-replay workflow** that keeps the following components distinguishable:
 
-## セットアップ
+- source observations;
+- derived replay parameters;
+- directional time-series and event profiles;
+- planned and actual replay-update timing;
+- execution and provenance records; and
+- orbit-aware interpretation.
+
+Orbital information is maintained as a separate interpretation layer. It does **not** determine replay impairment values and is not used to identify the actual serving satellite. Causal and retrospective orbital-element selection are explicitly distinguished so that orbital information obtained after an event is not silently treated as information that was available at measurement time.
+
+### Directional assumptions
+
+Legacy `delay_ms` values may originate from ping RTT measurements. Applying such values directly to a one-way qdisc makes the relationship to the measured round-trip delay ambiguous. Since v0.3.0, LEO-Replay converts measurements into bidirectional conditions using explicit derivation rules when directional measurements are unavailable.
+
+The default assumptions are:
+
+- **Delay and jitter:** split 50/50 between forward and reverse directions
+- **Loss:** decompose the end-to-end loss probability so that the combined two-direction probability is consistent with the original path-loss value
+- **Rate:** assign the measured throughput to the forward direction and use 260 Mbit/s as the default reverse-path rate
+
+These values are **derived assumptions**, not directional measurements. If directional measurements are available, record them directly in the bidirectional profile.
+
+## Setup
 
 ```bash
 python3 -m venv .venv
@@ -70,14 +89,13 @@ make check
 leo-replay --version
 ```
 
-期待値：
+Expected output:
 
 ```text
 leo-replay 0.5.0
 ```
 
-
-## 同期Mapと通信タイムライン
+## Synchronized Map and Communication Timeline
 
 ```bash
 leo-replay orbit select-elements \
@@ -99,9 +117,11 @@ leo-replay viz build \
 open /tmp/leo-replay-viz/index.html
 ```
 
-Map上の点は軌道要素による幾何学的再構成であり、端末が実際に接続していた衛星を示しません。詳細は [docs/SYNCHRONIZED_VISUALIZATION.md](docs/SYNCHRONIZED_VISUALIZATION.md) を参照してください。
+Points shown on the map are geometric reconstructions derived from orbital elements. They do **not** identify the satellite to which the terminal was actually connected.
 
-## 軌道スナップショット取得
+See [docs/SYNCHRONIZED_VISUALIZATION.md](docs/SYNCHRONIZED_VISUALIZATION.md) for details.
+
+## Orbital Snapshot Acquisition
 
 ```bash
 leo-replay orbit fetch celestrak \
@@ -113,10 +133,11 @@ leo-replay orbit verify-snapshot \
   --input-dir orbit-snapshots/celestrak-starlink
 ```
 
-Space-Trackでは認証情報を環境変数から読み込み、`gp_history`をNORAD ID単位で分割取得できます。認証情報は保存されません。詳細は [docs/ORBIT_ACQUISITION.md](docs/ORBIT_ACQUISITION.md) を参照してください。
+For Space-Track, authentication credentials are read from environment variables, and `gp_history` can be acquired in chunks by NORAD ID. Authentication credentials are not stored.
 
+See [docs/ORBIT_ACQUISITION.md](docs/ORBIT_ACQUISITION.md) for details.
 
-## 履歴軌道要素の選択
+## Historical Orbital-Element Selection
 
 ```bash
 leo-replay orbit select-elements \
@@ -126,9 +147,13 @@ leo-replay orbit select-elements \
   --output /tmp/iss-element-selection.json
 ```
 
-causal modeは`CREATION_DATE`が観測時刻以前の要素だけを対象とし、retrospective modeは事後的に`EPOCH`が最も近い要素を選びます。詳細は [docs/HISTORICAL_ELEMENT_SELECTION.md](docs/HISTORICAL_ELEMENT_SELECTION.md) を参照してください。
+In **causal mode**, only elements whose `CREATION_DATE` satisfies the configured observation-time knowledge cutoff are eligible. With zero availability lag, this means `CREATION_DATE` is at or before the observation time, and the latest eligible creation date is selected.
 
-## 軌道コンテキストの最小例
+In **retrospective mode**, the element with the minimum absolute `EPOCH` distance from the observation time is selected, even if that element became available only after the observation.
+
+See [docs/HISTORICAL_ELEMENT_SELECTION.md](docs/HISTORICAL_ELEMENT_SELECTION.md) for details.
+
+## Minimal Orbit-Context Example
 
 ```bash
 leo-replay orbit import \
@@ -146,9 +171,11 @@ leo-replay orbit visibility \
   --output /tmp/visibility.csv
 ```
 
-実験では、観測時刻に近い軌道要素と実際の観測地点を使用してください。出力は可視候補であり、端末が接続していた衛星の特定結果ではありません。詳細は [docs/ORBIT_CONTEXT.md](docs/ORBIT_CONTEXT.md) を参照してください。
+For experiments, use orbital elements appropriate to the observation time and the actual observation site. The output represents geometrically visible candidates; it is **not** an identification of the serving satellite.
 
-## 従来プロファイルの双方向化
+See [docs/ORBIT_CONTEXT.md](docs/ORBIT_CONTEXT.md) for details.
+
+## Converting Legacy Profiles to Bidirectional Profiles
 
 ```bash
 leo-replay profile directionalize \
@@ -157,9 +184,13 @@ leo-replay profile directionalize \
   --output /tmp/profile-directional.csv
 ```
 
-変換規則は`/tmp/profile-directional.csv.meta.json`へ保存されます。
+The transformation policy is saved to:
 
-イベント形式も変換できます。
+```text
+/tmp/profile-directional.csv.meta.json
+```
+
+Event profiles can also be converted:
 
 ```bash
 leo-replay profile directionalize \
@@ -168,15 +199,17 @@ leo-replay profile directionalize \
   --output /tmp/events-directional.json
 ```
 
-## 2 NICルータでの双方向再現
+## Bidirectional Replay on a Two-NIC Router
 
-推奨トポロジ：
+Recommended topology:
 
 ```text
 Client -- [client-facing NIC | Linux router | server-facing NIC] -- Server
 ```
 
-forwardはクライアント→サーバ、reverseはサーバ→クライアントです。各方向で**パケットが出ていく側のNIC**を指定します。
+`forward` means client-to-server and `reverse` means server-to-client. For each direction, specify the NIC from which packets leave the router.
+
+Dry-run / setup check:
 
 ```bash
 leo-replay replay \
@@ -189,7 +222,7 @@ leo-replay replay \
   --setup-only
 ```
 
-Linuxルータで実適用します。
+Apply the profile on a Linux router:
 
 ```bash
 sudo .venv/bin/leo-replay replay \
@@ -201,9 +234,9 @@ sudo .venv/bin/leo-replay replay \
   --execution-log /data/run01/bidirectional-execution.jsonl
 ```
 
-## IFBを用いた双方向再現
+## Bidirectional Replay with IFB
 
-指定した物理NICのegressをforward、同NICのingressをIFBへredirectしてreverseとして制御します。
+In IFB mode, egress on the specified physical NIC is treated as the forward direction, while ingress on the same NIC is redirected to an IFB device and controlled as the reverse direction.
 
 ```bash
 leo-replay replay \
@@ -215,7 +248,7 @@ leo-replay replay \
   --dry-run
 ```
 
-実適用時はroot権限が必要です。
+Root privileges are required for actual application:
 
 ```bash
 sudo .venv/bin/leo-replay replay \
@@ -228,27 +261,29 @@ sudo .venv/bin/leo-replay replay \
   --execution-log /data/run01/event-bidirectional-execution.jsonl
 ```
 
-実験終了時にqdiscとingress redirectを除去する場合は`--cleanup-on-exit`を付けます。IFBデバイス自体も削除する場合は`--delete-ifb-device`も付けます。
+Use `--cleanup-on-exit` to remove qdiscs and ingress redirects when the experiment terminates. Add `--delete-ifb-device` if the IFB device itself should also be removed.
 
-## 仮想双方向テストベッド
+## Virtual Bidirectional Testbed
 
-Docker Desktop、Docker Engine、またはネイティブUbuntuのnetwork namespaceで、実NICを用いずに双方向再現を検証できます。
+Bidirectional replay can be validated without physical NICs using Docker Desktop, Docker Engine, or native Ubuntu network namespaces.
+
+Docker:
 
 ```bash
 bash labs/docker-bidirectional/run-fixed-condition-test.sh
 bash labs/docker-bidirectional/run-profile-test.sh
 ```
 
-ネイティブLinuxでは次を使用します。
+Native Linux:
 
 ```bash
 sudo bash labs/netns-bidirectional/run-fixed-condition-test.sh
 sudo bash labs/netns-bidirectional/run-profile-test.sh
 ```
 
-詳細は [docs/VIRTUAL_TESTBED.md](docs/VIRTUAL_TESTBED.md) を参照してください。
+See [docs/VIRTUAL_TESTBED.md](docs/VIRTUAL_TESTBED.md) for details.
 
-## 片方向モードとの互換性
+## Compatibility with Single-Direction Replay
 
 ```bash
 leo-replay replay \
@@ -259,37 +294,43 @@ leo-replay replay \
   --dry-run
 ```
 
-`--direction-mode`を省略した場合も`single`です。
+If `--direction-mode` is omitted, `single` is used by default.
 
-## リポジトリ構成
+## Repository Structure
 
 ```text
-src/leo_replay/         統一CLI、イベント形式、双方向変換・再生・評価、軌道コンテキスト
-schemas/                Event、軌道入力、可視性、annotationのJSON Schema
-config/                 実験設定テンプレート
-collector/              計測プログラム追加予定の入口
-scripts/orchestration/  実験全体の制御
-scripts/profile/        実測ログから既存プロファイル生成
-scripts/replay/         既存片方向再生と補正処理
-scripts/evaluation/     既存比較・集計・描画
-examples/               合成サンプルと方向別プロファイル
-legacy/                 旧版スクリプト
-tests/                  単体・統合・回帰テスト
-labs/                   Docker・network namespace仮想テストベッド
-docs/                   設計、利用手順、研究継続性
+src/leo_replay/         unified CLI, event formats, bidirectional conversion/replay/evaluation, orbit context
+schemas/                JSON Schemas for events, orbital inputs, visibility, and annotations
+config/                 experiment configuration templates
+collector/              entry point for additional measurement collectors
+scripts/orchestration/  experiment orchestration
+scripts/profile/        profile generation from measurement logs
+scripts/replay/         legacy single-direction replay and correction processing
+scripts/evaluation/     comparison, aggregation, and plotting
+examples/               synthetic examples and directional profiles
+legacy/                 legacy scripts
+tests/                  unit, integration, and regression tests
+labs/                   Docker and network-namespace virtual testbeds
+docs/                   design notes, usage documentation, and research-continuity information
 ```
 
-## 制約
+## Limitations
 
-- `tc/netem`の実適用はLinuxが必要です。macOSでは生成、変換、検証、評価、dry-runまで実行できます。
-- 従来のRTTを双方向へ分解した値は推定値です。
-- forward/reverseのNIC対応はルータの物理配線に依存します。実験前に`tcpdump -i <dev>`等で確認してください。
-- 2方向の`tc`コマンドは逐次適用されるため、短時間イベントでは方向間に適用時刻差が生じます。`execution-log`で確認してください。
-- Docker Desktopは機能確認向けであり、短時間イベントの最終精度はネイティブUbuntuまたは実ルータで評価してください。
-- Starlink実測データ計測プログラム本体、実接続衛星の同定、経路切替は未収録です。
+- Actual `tc/netem` application requires Linux. On macOS, profile generation, conversion, verification, evaluation, and dry-run operation are supported.
+- Values obtained by decomposing legacy RTT measurements into forward/reverse conditions are derived assumptions.
+- The mapping between forward/reverse directions and physical NICs depends on the router cabling. Verify the mapping before experiments, for example with `tcpdump -i <dev>`.
+- Forward and reverse `tc` commands are applied sequentially. Short events can therefore exhibit a small inter-direction application-time skew; verify it using the execution log.
+- Docker Desktop is intended primarily for functional verification. For final timing evaluation of short events, use native Ubuntu or a physical Linux router.
+- The repository does not identify the actual serving satellite. Public orbital data are used only for orbit-aware interpretation and candidate-geometry analysis.
+- Communication measurements can contain satellite, gateway, terrestrial-network, and host effects; replay does not isolate a single proprietary mechanism such as beam scheduling or handover.
+- Measurement-driven replay reproduces derived network conditions, not proprietary internal Starlink topology, routing, radio adaptation, or serving-satellite state.
 
-詳細は [docs/BIDIRECTIONAL_REPLAY.md](docs/BIDIRECTIONAL_REPLAY.md) と [docs/USAGE.md](docs/USAGE.md) を参照してください。
+See [docs/BIDIRECTIONAL_REPLAY.md](docs/BIDIRECTIONAL_REPLAY.md) and [docs/USAGE.md](docs/USAGE.md) for additional details.
 
-## ライセンス
+## License
 
-現時点ではライセンスを付与していません。公開リポジトリへ変更する前に、共同研究者・所属機関との関係を確認し、利用条件を決定してください。
+No open-source license has been assigned to this repository at this time.
+
+This repository is publicly available to support research transparency and reproducibility. Public availability does not grant permission to use, modify, or redistribute the software except as permitted by applicable law and the GitHub Terms of Service. Unless otherwise stated, all rights are reserved by the copyright holders.
+
+Licensing terms may be updated in the future after coordination among the authors and their affiliated institutions.
